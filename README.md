@@ -1,8 +1,15 @@
+<div align="center">
+
 # ChainPulse
 
-[![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/) [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/) [![Vercel](https://img.shields.io/badge/deploy-Vercel-000?style=flat-square&logo=vercel)](https://vercel.com/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/) [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/) [![Netlify](https://img.shields.io/badge/deploy-Netlify-000?style=flat-square&logo=netlify)](https://netlify.com/)
 
-**Agentic mediator for crypto intel** — EN · हिं · বাং — read-only, no wallet connect.
+**Agentic mediator for crypto intel** — EN · हिं · বাং — Read-only. No Wallet connect. No upfront subscription.
+
+</div>
+
+<img width="1536" height="1024" alt="chainpulse-logo" src="https://github.com/user-attachments/assets/fde1c557-e3e8-4b62-b6bd-e9ae6048cb88" />
+
 
 Most people juggling markets, staking, or “what moved on-chain today?” bounce between dashboards, explorers, and feeds. ChainPulse collapses that into **one conversational surface**: ask natural questions (“major Solana/Ethereum updates today?”, “governance worth watching this week?”, “unusual large flows?”), get **answers backed by sourced data** — charts, cards, catalogs — routed from verified APIs/RSS **server-side**.
 
