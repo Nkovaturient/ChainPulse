@@ -1,0 +1,28 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  student
+  trader
+  crypto_investor
+  just_exploring
+  tech_savvy
+}
+
+model User {
+  id              String    @id @default(uuid()) @db.Uuid
+  email           String    @unique
+  username        String    @unique
+  hashedPassword  String    @map("hashed_password")
+  role            UserRole  @default(just_exploring)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastLogin       DateTime? @map("last_login") @db.Timestamptz(6)
+
+  @@map("users")
+  @@index([email], map: "users_email_idx")
+}

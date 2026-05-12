@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 import JotformFeedback from '@/components/JotformFeedback';
 
 const geistSans = Geist({ variable: '--font-sans', subsets: ['latin'] });
@@ -18,8 +19,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" data-theme="dark" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className="min-h-screen antialiased">
         <ThemeProvider>
-          {children}
-          <JotformFeedback />
+          <AuthProvider>
+            {children}
+            <JotformFeedback />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

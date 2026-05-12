@@ -1,24 +1,28 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import QueryInput from '@/components/QueryInput';
 import ResponseFeed from '@/components/ResponseFeed';
 import SkeletonCard from '@/components/SkeletonCard';
 import { t } from '@/lib/translations';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Language, QueryResponse } from '@/types';
 
-export default function AppPage() {
+function AppPageContent() {
   const router = useRouter();
+  const params = useSearchParams();
   const { theme, toggle } = useTheme();
+  const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [lang, setLang] = useState<Language>('en');
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState<QueryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const autoSubmittedForQ = useRef<string | null>(null);
 
-  const handleSubmit = async (q: string) => {
+  const handleSubmit = useCallback(async (q: string) => {
     setIsLoading(true);
     setError(null);
     setResponse(null);
@@ -40,7 +44,15 @@ export default function AppPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [lang]);
+
+  useEffect(() => {
+    const q = params.get('q');
+    if (!q || autoSubmittedForQ.current === q) return;
+    autoSubmittedForQ.current = q;
+    setQuery(q);
+    void handleSubmit(q);
+  }, [params, handleSubmit]);
 
   const langs: Language[] = ['en', 'hi', 'bn'];
   const langLabel = (l: Language) => (l === 'en' ? 'EN' : l === 'hi' ? 'हि' : 'বা');
@@ -73,6 +85,18 @@ export default function AppPage() {
 
         {/* Controls */}
         <div className="flex items-center gap-2">
+          {/* User avatar / dashboard link */}
+          {user && (
+            <button onClick={() => router.push('/dashboard')}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all hover:opacity-80"
+              style={{ borderColor: 'var(--border)', background: 'var(--bg-card2)', color: 'var(--text-muted)' }}>
+              <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
+                {user.username[0].toUpperCase()}
+              </span>
+              {user.username}
+            </button>
+          )}
           {/* Lang switcher */}
           <div
             className="flex items-center gap-1 rounded-xl border p-1"
@@ -147,5 +171,27 @@ export default function AppPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+function AppPageFallback() {
+  return (
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg)' }}>
+      <header className="app-header sticky top-0 z-50 px-4 py-3 flex items-center justify-between gap-4">
+        <span className="text-xl">⛓</span>
+      </header>
+      <main className="flex-1 flex flex-col px-4 pt-8 space-y-4 max-w-2xl mx-auto w-full">
+        <SkeletonCard />
+        <SkeletonCard />
+      </main>
+    </div>
+  );
+}
+
+export default function AppPage() {
+  return (
+    <Suspense fallback={<AppPageFallback />}>
+      <AppPageContent />
+    </Suspense>
   );
 }

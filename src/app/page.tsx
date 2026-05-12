@@ -40,10 +40,16 @@ export default function LandingPage() {
           <span className="text-2xl">⛓</span>
           <span className="font-bold text-white tracking-tight text-lg">ChainPulse</span>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs px-3 py-1.5 rounded-full border border-white/10 text-white/50">
-            Read-only · No wallet
-          </span>
+        <div className="flex items-center gap-2">
+          <button onClick={() => router.push('/login')}
+            className="text-xs px-4 py-2 rounded-full border border-white/10 text-white/60 hover:text-white hover:border-white/20 transition-colors font-medium">
+            Sign in
+          </button>
+          <button onClick={() => router.push('/signup')}
+            className="text-xs px-4 py-2 rounded-full font-semibold text-white transition-all hover:opacity-90"
+            style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
+            Get started
+          </button>
         </div>
       </nav>
 

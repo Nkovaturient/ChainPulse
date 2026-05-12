@@ -61,3 +61,19 @@ export interface QueryResponse {
 }
 
 export type Language = 'en' | 'hi' | 'bn';
+
+export type UserRole =
+  | 'student'
+  | 'trader'
+  | 'crypto_investor'
+  | 'just_exploring'
+  | 'tech_savvy';
+
+export interface User {
+  id: string;
+  email: string;
+  username: string;
+  role: UserRole;
+  created_at: string;
+  last_login: string | null;
+}
