@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 const TICKERS = [
   { sym: 'BTC', label: 'Bitcoin' },
@@ -24,6 +25,7 @@ const FEATURES = [
 
 export default function LandingPage() {
   const router = useRouter();
+  const { user, loading } = useAuth();
 
   return (
     <div className="relative min-h-screen flex flex-col overflow-hidden">
@@ -40,16 +42,40 @@ export default function LandingPage() {
           <span className="text-2xl">⛓</span>
           <span className="font-bold text-white tracking-tight text-lg">ChainPulse</span>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => router.push('/login')}
-            className="text-xs px-4 py-2 rounded-full border border-white/10 text-white/60 hover:text-white hover:border-white/20 transition-colors font-medium">
-            Sign in
-          </button>
-          <button onClick={() => router.push('/signup')}
-            className="text-xs px-4 py-2 rounded-full font-semibold text-white transition-all hover:opacity-90"
-            style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
-            Get started
-          </button>
+        <div className="flex items-center gap-2 min-h-[36px]">
+          {loading ? (
+            <div className="flex items-center gap-2">
+              <div className="h-9 w-20 rounded-full bg-white/[.06] animate-pulse" aria-hidden />
+              <div className="h-9 w-24 rounded-full bg-white/[.08] animate-pulse" aria-hidden />
+            </div>
+          ) : user ? (
+            <>
+              <button
+                type="button"
+                onClick={() => router.push('/dashboard')}
+                className="text-xs px-4 py-2 rounded-full font-semibold text-white transition-all hover:opacity-90 shadow-lg shadow-indigo-500/20"
+                style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
+              >
+                Dashboard
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => router.push('/login')}
+                className="text-xs px-4 py-2 rounded-full border border-white/10 text-white/60 hover:text-white hover:border-white/20 transition-colors font-medium">
+                Sign in
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push('/signup')}
+                className="text-xs px-4 py-2 rounded-full font-semibold text-white transition-all hover:opacity-90"
+                style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
+                Get started
+              </button>
+            </>
+          )}
         </div>
       </nav>
 
@@ -202,7 +228,11 @@ export default function LandingPage() {
             Launch ChainPulse Console
             <span className="text-lg">→</span>
           </button>
-          <p className="mt-4 text-white/30 text-xs">No sign-up · No wallet · 100% read-only</p>
+          <p className="mt-4 text-white/30 text-xs">
+            {user
+              ? `${user.username} · Console is read-only · No wallet required`
+              : 'No sign-up · No wallet · 100% read-only'}
+          </p>
         </div>
       </section>
 
