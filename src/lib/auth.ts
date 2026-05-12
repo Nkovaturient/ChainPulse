@@ -1,8 +1,9 @@
 import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
+import type { NextResponse } from 'next/server';
 
-const COOKIE = 'cp_session';
+export const SESSION_COOKIE = 'cp_session';
 const EXPIRES_IN = 60 * 60 * 24 * 7; // 7 days in seconds
 
 function secret() {
@@ -43,25 +44,26 @@ export async function comparePassword(plain: string, hash: string): Promise<bool
   return bcrypt.compare(plain, hash);
 }
 
-export async function setSessionCookie(token: string) {
-  const jar = await cookies();
-  jar.set(COOKIE, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: EXPIRES_IN,
-  });
+const sessionCookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax' as const,
+  path: '/',
+  maxAge: EXPIRES_IN,
+};
+
+/** Prefer attaching to NextResponse in Route Handlers so Set-Cookie is always on the response. */
+export function attachSessionCookie(res: NextResponse, token: string) {
+  res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions);
 }
 
-export async function clearSessionCookie() {
-  const jar = await cookies();
-  jar.delete(COOKIE);
+export function detachSessionCookie(res: NextResponse) {
+  res.cookies.set(SESSION_COOKIE, '', { ...sessionCookieOptions, maxAge: 0 });
 }
 
 export async function getSessionUser(): Promise<JWTPayload | null> {
   const jar = await cookies();
-  const token = jar.get(COOKIE)?.value;
+  const token = jar.get(SESSION_COOKIE)?.value;
   if (!token) return null;
   return verifyToken(token);
 }

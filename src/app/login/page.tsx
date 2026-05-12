@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AuthShell from '@/components/AuthShell';
 import { useAuth } from '@/contexts/AuthContext';
+import { safePostAuthPath } from '@/lib/auth-redirect';
 
 function LoginForm() {
   const router = useRouter();
@@ -24,12 +25,14 @@ function LoginForm() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
         body: JSON.stringify({ email, password }),
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) { setError(data.error ?? 'Login failed.'); return; }
       await refresh();
-      router.push(params.get('next') || '/dashboard');
+      const dest = safePostAuthPath(params.get('next'), '/dashboard');
+      window.location.assign(dest);
     } catch {
       setError('Network error. Please try again.');
     } finally {
@@ -87,7 +90,12 @@ function LoginForm() {
 
         <p className="text-center text-xs mt-4" style={{ color: '#8892a4' }}>
           No account?{' '}
-          <button type="button" onClick={() => router.push('/signup')}
+          <button
+            type="button"
+            onClick={() => {
+              const n = params.get('next');
+              router.push(n ? `/signup?next=${encodeURIComponent(n)}` : '/signup');
+            }}
             className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
             Create one
           </button>

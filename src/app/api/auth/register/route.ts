@@ -1,5 +1,6 @@
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { hashPassword, signToken, setSessionCookie } from '@/lib/auth';
+import { attachSessionCookie, hashPassword, signToken } from '@/lib/auth';
 import { Prisma, UserRole } from '@prisma/client';
 
 export const runtime = 'nodejs';
@@ -42,9 +43,11 @@ export async function POST(req: Request) {
     const token = await signToken({
       sub: user.id, email: user.email, username: user.username, role: user.role,
     });
-    await setSessionCookie(token);
-
-    return Response.json({ user: { id: user.id, email: user.email, username: user.username, role: user.role } });
+    const res = NextResponse.json({
+      user: { id: user.id, email: user.email, username: user.username, role: user.role },
+    });
+    attachSessionCookie(res, token);
+    return res;
   } catch (e: unknown) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
       const fields = e.meta?.target as string[] | undefined;
