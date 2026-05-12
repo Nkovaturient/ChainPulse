@@ -39,11 +39,6 @@ npm install && npm run dev
 
 <div align="center">
 
-⛓ *Read-only · no DB · Promise.allSettled on fetches*
+⛓ *Read-only · No Subscriptions · No Wallet · Promise.allSettled on fetches*
 
 </div>
-
-
-# TOD0
-- DB CONFIG
-- PROFILE/AUTHGUARDS
