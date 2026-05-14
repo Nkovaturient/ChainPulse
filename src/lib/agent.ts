@@ -6,7 +6,7 @@ function getClient() {
 }
 
 const DEFAULT_INTENT: IntentResult = {
-  intents: ['NEWS', 'PRICE'],
+  intents: ['PRICE'],
   coins: ['bitcoin', 'ethereum'],
   language: 'en',
 };
@@ -17,7 +17,17 @@ export async function classifyIntent(query: string): Promise<IntentResult> {
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 200,
       system:
-        'You are ChainPulse intent classifier. Analyze the query and return ONLY a raw JSON object with no markdown fences, no explanation. Schema: {"intents": string[], "coins": string[], "language": string}. Valid intents: PRICE, WHALE, NEWS, DEFI_TVL, STAKING, GOVERNANCE. Valid coins: bitcoin, ethereum, solana, bnb, cardano, polkadot, avalanche-2, chainlink, uniswap. Detect language from query text: en for English, hi for Hindi/Devanagari, bn for Bengali. Default language to en if uncertain.',
+        `You are ChainPulse intent classifier. Analyze the query and return ONLY a raw JSON object with no markdown fences, no explanation.
+Schema: {"intents": string[], "coins": string[], "language": string}
+Valid intents: PRICE, WHALE, NEWS, DEFI_TVL, STAKING, GOVERNANCE.
+Intent rules — ONLY include an intent if explicitly requested:
+- NEWS: only when user asks for news/headlines/updates/what's happening
+- WHALE: only when user asks about whales/large transactions/big moves
+- DEFI_TVL: only when user asks about DeFi/TVL/protocols/liquidity
+- STAKING: only when user asks about staking/yields/APY/rewards
+- PRICE: default for any coin price, market, bullish/bearish, value question
+Coin rules: output the canonical slug the way CoinGecko uses it. Examples — "aptos"→"aptos", "apt"→"aptos", "sui"→"sui", "near"→"near", "arb"→"arbitrum", "op"→"optimism", "avax"→"avalanche-2", "matic"→"matic-network", "inj"→"injective-protocol", "tia"→"celestia", "jup"→"jupiter-exchange-solana", "wif"→"dogwifcoin", "bonk"→"bonk", "pepe"→"pepe", "ldo"→"lido-dao", "link"→"chainlink", "uni"→"uniswap", "mkr"→"maker", "doge"→"dogecoin", "shib"→"shiba-inu", "ada"→"cardano", "xrp"→"ripple", "dot"→"polkadot", "ltc"→"litecoin", "atom"→"cosmos", "ftm"→"fantom", "algo"→"algorand", "icp"→"internet-computer", "hbar"→"hedera-hashgraph", "stx"→"stacks", "sei"→"sei-network", "pyth"→"pyth-network". When unsure of exact slug, output the ticker in lowercase (e.g. "apt", "sui") — the fetcher will resolve it.
+Language: en for English, hi for Hindi/Devanagari, bn for Bengali. Default to en.`,
       messages: [{ role: 'user', content: query }],
     });
 

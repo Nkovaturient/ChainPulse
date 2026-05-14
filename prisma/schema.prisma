@@ -15,14 +15,41 @@ enum UserRole {
 }
 
 model User {
-  id              String    @id @default(uuid()) @db.Uuid
-  email           String    @unique
-  username        String    @unique
-  hashedPassword  String    @map("hashed_password")
-  role            UserRole  @default(just_exploring)
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  lastLogin       DateTime? @map("last_login") @db.Timestamptz(6)
+  id              String        @id @default(uuid()) @db.Uuid
+  email           String        @unique
+  username        String        @unique
+  hashedPassword  String        @map("hashed_password")
+  role            UserRole      @default(just_exploring)
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastLogin       DateTime?     @map("last_login") @db.Timestamptz(6)
+  chatSessions    ChatSession[]
 
   @@map("users")
   @@index([email], map: "users_email_idx")
+}
+
+model ChatSession {
+  id        String        @id @default(uuid()) @db.Uuid
+  userId    String        @map("user_id") @db.Uuid
+  title     String        @default("New chat")
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  ChatMessage[]
+
+  @@map("chat_sessions")
+  @@index([userId, updatedAt(sort: Desc)], map: "chat_sessions_user_updated_idx")
+}
+
+model ChatMessage {
+  id        String      @id @default(uuid()) @db.Uuid
+  sessionId String      @map("session_id") @db.Uuid
+  role      String      // 'user' | 'assistant'
+  text      String
+  dataJson  Json?       @map("data_json")
+  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+  @@index([sessionId, createdAt], map: "chat_messages_session_created_idx")
 }

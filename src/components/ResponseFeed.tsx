@@ -11,6 +11,8 @@ import StakingCard from './cards/StakingCard';
 interface Props {
   response: QueryResponse;
   lang: Language;
+  /** When true, skip the SummaryCard (summary already rendered elsewhere) */
+  compact?: boolean;
 }
 
 function ErrorNotice({ msg }: { msg: string }) {
@@ -21,11 +23,11 @@ function ErrorNotice({ msg }: { msg: string }) {
   );
 }
 
-export default function ResponseFeed({ response, lang }: Props) {
+export default function ResponseFeed({ response, lang, compact }: Props) {
   const errors = response.errors || {};
   return (
     <div className="space-y-4">
-      <SummaryCard summary={response.summary} lang={lang} />
+      {!compact && <SummaryCard summary={response.summary} lang={lang} />}
       {response.price?.length   && <PriceCard data={response.price} lang={lang} />}
       {errors.price             && <ErrorNotice msg={`Price: ${errors.price}`} />}
       {response.whale?.length   && <WhaleCard data={response.whale} lang={lang} />}

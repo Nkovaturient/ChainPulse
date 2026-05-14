@@ -1,7 +1,46 @@
 'use client';
 
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import type { PriceData } from '@/types';
+
+const REFRESH_MS = 45_000;
+
+function useLivePrices() {
+  const [prices, setPrices] = useState<PriceData[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetch_ = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/prices/live');
+      if (res.ok) {
+        const { prices: data } = (await res.json()) as { prices: PriceData[] };
+        setPrices(data);
+        setLastUpdated(new Date());
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetch_();
+    timer.current = setInterval(() => void fetch_(), REFRESH_MS);
+    return () => { if (timer.current) clearInterval(timer.current); };
+  }, [fetch_]);
+
+  return { prices, loading, lastUpdated, refresh: fetch_ };
+}
+
+function fmt(n: number) {
+  return n >= 1000
+    ? `$${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+    : `$${n.toFixed(2)}`;
+}
 
 const TICKERS = [
   { sym: 'BTC', label: 'Bitcoin' },
@@ -26,6 +65,7 @@ const FEATURES = [
 export default function LandingPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
+  const { prices, loading: pricesLoading, lastUpdated, refresh } = useLivePrices();
 
   return (
     <div className="relative min-h-screen flex flex-col overflow-hidden">
@@ -131,26 +171,75 @@ export default function LandingPage() {
           </a>
         </div>
 
-        {/* Mini preview cards */}
-        <div className="animate-fade-up delay-500 mt-16 flex items-stretch gap-3 max-w-2xl w-full overflow-x-auto pb-2">
-          {[
-            { label: 'BTC', val: '$81,408', chg: '+1.2%', up: true },
-            { label: 'ETH', val: '$2,334', chg: '+0.8%', up: true },
-            { label: 'SOL', val: '$93.4', chg: '-0.3%', up: false },
-            { label: 'TVL', val: '$20.5B', chg: 'Lido', up: true },
-          ].map((c) => (
-            <div
-              key={c.label}
-              className="flex-shrink-0 flex-1 min-w-[110px] rounded-xl border border-white/8 bg-white/[.04] backdrop-blur p-3 text-left"
-            >
-              <div className="text-[10px] text-white/40 font-mono mb-1">{c.label}</div>
-              <div className="text-white font-semibold text-sm">{c.val}</div>
-              <div className={`text-[11px] font-medium mt-0.5 ${c.up ? 'text-emerald-400' : 'text-red-400'}`}>
-                {c.chg}
-              </div>
+        {/* Mini preview — live prices teaser cards */}
+        <div className="animate-fade-up delay-500 mt-16 max-w-2xl w-full">
+          {/* Header row */}
+          <div className="flex items-center justify-between mb-2 px-0.5">
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[11px] text-white/40 font-mono uppercase tracking-wider">Live</span> {/* Coingecko */}
             </div>
-          ))}
+            <div className="flex items-center gap-2">
+              {lastUpdated && (
+                <span className="text-[10px] text-white/20 font-mono">
+                  {Math.round((Date.now() - lastUpdated.getTime()) / 1000)}s ago
+                </span>
+              )}
+              <button
+                onClick={() => void refresh()}
+                disabled={pricesLoading}
+                className="text-[10px] text-white-500/30 hover:text-emerald-500/60 transition-colors disabled:opacity-30 flex items-center gap-0.5"
+                title="Refresh prices"
+              >
+                <span className={pricesLoading ? 'animate-spin inline-block' : ''}>↺</span> Refresh
+              </button>
+            </div>
+          </div>
+
+          {/* Cards row */}
+          <div className="flex items-stretch gap-3 overflow-x-auto pb-2">
+            {pricesLoading && !prices ? (
+              // Skeleton cards
+              [0, 1, 2].map((i) => (
+                <div key={i} className="flex-shrink-0 flex-1 min-w-[110px] rounded-xl border border-white/8 bg-white/[.04] backdrop-blur p-3">
+                  <div className="h-2 w-8 rounded bg-white/10 animate-pulse mb-2" />
+                  <div className="h-3.5 w-16 rounded bg-white/10 animate-pulse mb-1.5" />
+                  <div className="h-2.5 w-10 rounded bg-white/5 animate-pulse" />
+                </div>
+              ))
+            ) : prices && prices.length > 0 ? (
+              prices.slice(0, 3).map((p) => {
+                const up = p.usd_24h_change >= 0;
+                return (
+                  <div
+                    key={p.id}
+                    className="flex-shrink-0 flex-1 min-w-[110px] rounded-xl border border-white/8 bg-white/[.04] backdrop-blur p-3 text-left"
+                  >
+                    <div className="text-[10px] text-white/40 font-mono mb-1">{p.symbol.toUpperCase()}</div>
+                    <div className="text-white font-semibold text-sm">{fmt(p.usd)}</div>
+                    <div className={`text-[11px] font-medium mt-0.5 ${up ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {up ? '+' : ''}{p.usd_24h_change.toFixed(2)}%
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              // Fallback static
+              [
+                { sym: 'BTC', val: '—', chg: '—', up: true },
+                { sym: 'ETH', val: '—', chg: '—', up: true },
+                { sym: 'SOL', val: '—', chg: '—', up: true },
+              ].map((c) => (
+                <div key={c.sym} className="flex-shrink-0 flex-1 min-w-[110px] rounded-xl border border-white/8 bg-white/[.04] backdrop-blur p-3 text-left">
+                  <div className="text-[10px] text-white/40 font-mono mb-1">{c.sym}</div>
+                  <div className="text-white/30 font-semibold text-sm">{c.val}</div>
+                  <div className="text-[11px] font-medium mt-0.5 text-white/20">{c.chg}</div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
+
       </main>
 
       {/* Features */}

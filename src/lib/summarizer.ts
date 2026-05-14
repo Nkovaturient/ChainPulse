@@ -5,56 +5,49 @@ function getClient() {
   return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 }
 
-/** Strip all markdown artifacts from a plain-text response. */
-function stripMarkdown(text: string): string {
+export interface HistoryTurn {
+  role: 'user' | 'assistant';
+  text: string;
+}
+
+/** Trim excessive blank lines but preserve meaningful markdown structure. */
+function normalizeMarkdown(text: string): string {
   return text
-    // Remove ATX headings (# ## ### etc.)
-    .replace(/^#{1,6}\s+/gm, '')
-    // Remove bold/italic (**text**, *text*, __text__, _text_)
-    .replace(/(\*{1,3}|_{1,3})(.*?)\1/g, '$2')
-    // Remove blockquotes (> )
-    .replace(/^>\s*/gm, '')
-    // Remove unordered list markers (- item, * item, • item)
-    .replace(/^[\-\*•]\s+/gm, '')
-    // Remove ordered list markers (1. 2. etc.)
-    .replace(/^\d+\.\s+/gm, '')
-    // Remove inline code and code blocks
-    .replace(/`{1,3}[^`]*`{1,3}/g, (m) => m.replace(/`/g, '').trim())
-    // Remove horizontal rules
-    .replace(/^[-*_]{3,}\s*$/gm, '')
-    // Collapse multiple blank lines into one
-    .replace(/\n{3,}/g, '\n\n')
-    // Flatten multiple paragraphs into a single flowing paragraph
-    .replace(/\n{2,}/g, ' ')
-    .replace(/\n/g, ' ')
-    // Clean up extra spaces
-    .replace(/  +/g, ' ')
+    .replace(/^#{1,6}\s+/gm, '') // no headers — keep prose + bullets only
+    .replace(/\n{3,}/g, '\n\n')   // collapse 3+ blank lines to max 2
     .trim();
 }
 
 export async function generateSummary(
   data: Partial<QueryResponse>,
   language: Language,
-  query: string
+  query: string,
+  history: HistoryTurn[] = [],
 ): Promise<string> {
   const langName = language === 'hi' ? 'Hindi' : language === 'bn' ? 'Bengali' : 'English';
   try {
+    // Build conversation history for context (last 4 turns, text only)
+    const historyMessages: Anthropic.MessageParam[] = history.slice(-4).map((h) => ({
+      role: h.role,
+      content: h.text,
+    }));
+
     const msg = await getClient().messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 400,
       system: `You are ChainPulse, a trustworthy crypto intelligence assistant. Respond in ${langName}.
 
-STRICT OUTPUT RULES — violations are not allowed:
-- Plain prose only. No markdown whatsoever.
-- No headers (no #, ##, ###).
-- No bold or italic (no **, *, __, _).
-- No bullet points, dashes, or numbered lists.
-- No blockquotes (no >).
-- No code blocks or backticks.
-- No emoji except a single warning sign if you must note a limitation.
-- Write 3–4 complete sentences in a single paragraph.
-- Be factual, cite the numbers you were given, and never give financial advice.`,
+FORMAT RULES:
+- Use clean markdown: short paragraphs, bullet lists (- item), and **bold** for key numbers or terms.
+- Do NOT use headers (no #, ##, ###).
+- Do NOT use blockquotes (no >) or code blocks.
+- Use bullet points when listing multiple items (e.g. top protocols, news headlines, yield pools).
+- Write a 1–2 sentence opening paragraph, then bullets if applicable, then a brief closing note.
+- Keep total response concise — under 180 words.
+- End with a single ⚠ disclaimer line if data carries risk (prices, yields). Never give financial advice.
+- If prior conversation context is provided, stay coherent with it.`,
       messages: [
+        ...historyMessages,
         {
           role: 'user',
           content: `User asked: '${query}'. Here is the data fetched: ${JSON.stringify(data, null, 2)}`,
@@ -62,7 +55,7 @@ STRICT OUTPUT RULES — violations are not allowed:
       ],
     });
     const block = msg.content.find((b) => b.type === 'text');
-    if (block && block.type === 'text') return stripMarkdown(block.text);
+    if (block && block.type === 'text') return normalizeMarkdown(block.text);
     return '';
   } catch {
     return language === 'hi'

@@ -2,6 +2,7 @@
 
 import type { Language } from '@/types';
 import { t } from '@/lib/translations';
+import MarkdownBody from '@/components/MarkdownBody';
 
 interface Props {
   summary: string;
@@ -31,9 +32,7 @@ export default function SummaryCard({ summary, lang }: Props) {
           {tr.summary_label}
         </span>
       </div>
-      <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: 'var(--text)' }}>
-        {summary}
-      </p>
+      <MarkdownBody>{summary}</MarkdownBody>
       <p className="mt-3 text-[11px]" style={{ color: 'var(--text-muted)' }}>
         {tr.not_financial_advice}
       </p>
