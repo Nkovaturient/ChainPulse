@@ -104,6 +104,14 @@ function AppPageContent() {
 
           {/* Controls */}
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.push('/explorer')}
+              className="hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all hover:opacity-80"
+              style={{ borderColor: 'var(--border)', background: 'var(--bg-card2)', color: 'var(--text-muted)' }}
+              title="Wallet Explorer"
+            >
+              🔍 Explorer
+            </button>
             {user && (
               <button
                 onClick={() => router.push('/dashboard')}

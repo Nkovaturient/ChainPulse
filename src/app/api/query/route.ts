@@ -1,4 +1,4 @@
-import { classifyIntent } from '@/lib/agent';
+import { classifyIntent, runAgentLoop } from '@/lib/agent';
 import { fetchPrices } from '@/lib/fetchers/coingecko';
 import { fetchWhaleTransactions } from '@/lib/fetchers/etherscan';
 import { fetchSolanaTransactions } from '@/lib/fetchers/solscan';
@@ -37,79 +37,92 @@ export async function POST(req: Request) {
     return Response.json({ error: 'Invalid query' }, { status: 400 });
   }
 
-  // ── Auth + session resolution ──────────────────────────────────────────────
+  // ── Auth + session ─────────────────────────────────────────────────────────
   const user = await getSessionUser();
   let sessionId = incomingSessionId ?? null;
-
-  // If user is logged in and no session provided, create a new one
   if (user && !sessionId) {
-    const session = await createSession(user.sub);
-    sessionId = session.id;
+    const s = await createSession(user.sub);
+    sessionId = s.id;
   }
 
-  // Pull conversation history for multi-turn context
   let history: HistoryTurn[] = [];
-  if (user && sessionId) {
-    history = await getRecentContext(sessionId, 4);
-  }
+  if (user && sessionId) history = await getRecentContext(sessionId, 4);
 
-  // ── Persist user message ───────────────────────────────────────────────────
   if (user && sessionId) {
     await addMessage(sessionId, 'user', query);
-    // Auto-title on first message
-    if (history.length === 0) {
-      await autoTitleSession(sessionId, query);
-    }
+    if (history.length === 0) await autoTitleSession(sessionId, query);
   }
 
-  // ── Intent + parallel fetches ──────────────────────────────────────────────
-  const intent = await classifyIntent(query);
-  const lang: Language = intent.language || clientLang || 'en';
+  // ── Route: classify intent + complexity ────────────────────────────────────
+  const route = await classifyIntent(query);
+  const lang: Language = route.language || clientLang || 'en';
 
-  const [priceRes, whaleEthRes, whaleSolRes, defiRes, stakingRes, newsRes] = await Promise.allSettled([
-    intent.intents.includes('PRICE')
-      ? fetchPrices(intent.coins.length ? intent.coins : ['bitcoin', 'ethereum'])
-      : Promise.resolve([] as PriceData[]),
-    intent.intents.includes('WHALE') ? fetchWhaleTransactions() : Promise.resolve([] as WhaleTransaction[]),
-    intent.intents.includes('WHALE') ? fetchSolanaTransactions() : Promise.resolve([] as WhaleTransaction[]),
-    intent.intents.includes('DEFI_TVL') ? fetchDefiTVL() : Promise.resolve([] as DefiProtocol[]),
-    intent.intents.includes('STAKING') ? fetchStakingYields() : Promise.resolve([] as StakingPool[]),
-    intent.intents.includes('NEWS') || intent.intents.includes('GOVERNANCE')
-      ? fetchCryptoNews()
-      : Promise.resolve([] as NewsItem[]),
-  ]);
+  // ── Branch on complexity ───────────────────────────────────────────────────
+  let response: QueryResponse;
 
-  const errors: Record<string, string> = {};
-  const extract = <T>(res: PromiseSettledResult<T>, key: string): T | undefined => {
-    if (res.status === 'rejected') { errors[key] = 'Fetch failed'; return undefined; }
-    return res.value;
-  };
+  if (route.complexity === 'complex') {
+    // Agentic loop — model decides which tools to call
+    const result = await runAgentLoop(query, lang, history);
+    response = {
+      ...result.data,
+      summary: result.summary,
+      language: lang,
+      errors: result.errors,
+    };
+  } else {
+    // Fast path — hardcoded fan-out based on classified intents
+    const [priceRes, whaleEthRes, whaleSolRes, defiRes, stakingRes, newsRes] =
+      await Promise.allSettled([
+        route.intents.includes('PRICE')
+          ? fetchPrices(route.coins.length ? route.coins : ['bitcoin', 'ethereum'])
+          : Promise.resolve([] as PriceData[]),
+        route.intents.includes('WHALE') ? fetchWhaleTransactions() : Promise.resolve([] as WhaleTransaction[]),
+        route.intents.includes('WHALE') ? fetchSolanaTransactions() : Promise.resolve([] as WhaleTransaction[]),
+        route.intents.includes('DEFI_TVL') ? fetchDefiTVL() : Promise.resolve([] as DefiProtocol[]),
+        route.intents.includes('STAKING') ? fetchStakingYields() : Promise.resolve([] as StakingPool[]),
+        route.intents.includes('NEWS') || route.intents.includes('GOVERNANCE')
+          ? fetchCryptoNews()
+          : Promise.resolve([] as NewsItem[]),
+      ]);
 
-  const priceData  = extract(priceRes,    'price')     as PriceData[]      | undefined;
-  const whaleEth   = extract(whaleEthRes, 'whale_eth') as WhaleTransaction[] | undefined;
-  const whaleSol   = extract(whaleSolRes, 'whale_sol') as WhaleTransaction[] | undefined;
-  const newsData   = extract(newsRes,     'news')      as NewsItem[]        | undefined;
-  const defiData   = extract(defiRes,     'defi')      as DefiProtocol[]    | undefined;
-  const stakingData = extract(stakingRes, 'staking')   as StakingPool[]     | undefined;
+    const errors: Record<string, string> = {};
+    const extract = <T>(res: PromiseSettledResult<T>, key: string): T | undefined => {
+      if (res.status === 'rejected') { errors[key] = 'Fetch failed'; return undefined; }
+      return res.value;
+    };
 
-  const whaleCombined = [...(whaleEth || []), ...(whaleSol || [])];
+    const priceData  = extract(priceRes,    'price')     as PriceData[]        | undefined;
+    const whaleEth   = extract(whaleEthRes, 'whale_eth') as WhaleTransaction[] | undefined;
+    const whaleSol   = extract(whaleSolRes, 'whale_sol') as WhaleTransaction[] | undefined;
+    const newsData   = extract(newsRes,     'news')      as NewsItem[]         | undefined;
+    const defiData   = extract(defiRes,     'defi')      as DefiProtocol[]     | undefined;
+    const stakingData = extract(stakingRes, 'staking')   as StakingPool[]      | undefined;
 
-  const data: Partial<QueryResponse> = {
-    price:   priceData   && priceData.length   ? priceData   : undefined,
-    whale:   whaleCombined.length              ? whaleCombined : undefined,
-    news:    newsData    && newsData.length    ? newsData    : undefined,
-    defi:    defiData    && defiData.length    ? defiData    : undefined,
-    staking: stakingData && stakingData.length ? stakingData : undefined,
-  };
+    const whaleCombined = [...(whaleEth || []), ...(whaleSol || [])];
 
-  // ── Generate summary with history ──────────────────────────────────────────
-  const summary = await generateSummary(data, lang, query, history);
-  const response: QueryResponse = { ...data, summary, language: lang, errors };
+    const data: Partial<QueryResponse> = {
+      price:   priceData    && priceData.length   ? priceData    : undefined,
+      whale:   whaleCombined.length               ? whaleCombined : undefined,
+      news:    newsData     && newsData.length    ? newsData     : undefined,
+      defi:    defiData     && defiData.length    ? defiData     : undefined,
+      staking: stakingData  && stakingData.length ? stakingData  : undefined,
+    };
+
+    const summary = await generateSummary(data, lang, query, history);
+    response = { ...data, summary, language: lang, errors };
+  }
 
   // ── Persist assistant message ──────────────────────────────────────────────
+  let assistantMessageId: string | undefined;
   if (user && sessionId) {
-    await addMessage(sessionId, 'assistant', summary, response);
+    const stored = await addMessage(sessionId, 'assistant', response.summary, response);
+    assistantMessageId = stored.id;
   }
 
-  return Response.json({ ...response, sessionId });
+  return Response.json({
+    ...response,
+    sessionId,
+    assistantMessageId,
+    mode: route.complexity,
+  });
 }

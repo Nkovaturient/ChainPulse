@@ -47,6 +47,7 @@ model ChatMessage {
   role      String      // 'user' | 'assistant'
   text      String
   dataJson  Json?       @map("data_json")
+  feedback  String?     // 'up' | 'down' | null
   createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
   session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 

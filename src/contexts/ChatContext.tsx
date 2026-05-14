@@ -10,6 +10,8 @@ import {
 } from 'react';
 import type { QueryResponse } from '@/types';
 
+export type FeedbackValue = 'up' | 'down' | null;
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
@@ -17,6 +19,7 @@ export interface ChatMessage {
   data?: QueryResponse | null;
   createdAt: Date;
   pending?: boolean;
+  feedback?: FeedbackValue;
 }
 
 export interface ChatSession {
@@ -42,6 +45,8 @@ interface ChatContextValue {
   sendMessage: (query: string, lang: string) => Promise<QueryResponse | null>;
   /** Reload sessions list */
   reloadSessions: () => Promise<void>;
+  /** Set thumbs feedback on a stored assistant message */
+  setFeedback: (messageId: string, value: FeedbackValue) => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -76,13 +81,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch(`/api/chat/sessions/${id}`);
       if (!res.ok) return;
       const { messages: data } = (await res.json()) as {
-        messages: { id: string; role: string; text: string; dataJson: QueryResponse | null; createdAt: string }[]
+        messages: { id: string; role: string; text: string; dataJson: QueryResponse | null; feedback: FeedbackValue; createdAt: string }[]
       };
       setMessages(data.map((m) => ({
         id: m.id,
         role: m.role as 'user' | 'assistant',
         text: m.text,
         data: m.dataJson,
+        feedback: m.feedback ?? null,
         createdAt: new Date(m.createdAt),
       })));
     } finally {
@@ -144,17 +150,19 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         const e = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(e.error || 'Request failed');
       }
-      const data = (await res.json()) as QueryResponse & { sessionId?: string };
+      const data = (await res.json()) as QueryResponse & { sessionId?: string; assistantMessageId?: string };
 
-      // Replace pending bubble with real response
+      // Replace pending bubble with real response — use the server-issued ID
+      // so the feedback endpoint can find it.
       setMessages((prev) =>
         prev
           .filter((m) => m.id !== `${optimisticId}-pending`)
           .concat({
-            id: `${optimisticId}-res`,
+            id: data.assistantMessageId ?? `${optimisticId}-res`,
             role: 'assistant' as const,
             text: data.summary ?? '',
             data,
+            feedback: null,
             createdAt: new Date(),
           }),
       );
@@ -183,6 +191,27 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }
   }, [activeSessionId, newSession, reloadSessions]);
 
+  const setFeedback = useCallback(async (messageId: string, value: FeedbackValue) => {
+    // Optimistic update — assume the server accepts. Revert on failure.
+    const prevValue = messages.find((m) => m.id === messageId)?.feedback ?? null;
+    setMessages((prev) =>
+      prev.map((m) => (m.id === messageId ? { ...m, feedback: value } : m)),
+    );
+    try {
+      const res = await fetch(`/api/chat/messages/${messageId}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value }),
+      });
+      if (!res.ok) throw new Error('Feedback failed');
+    } catch {
+      // Revert
+      setMessages((prev) =>
+        prev.map((m) => (m.id === messageId ? { ...m, feedback: prevValue } : m)),
+      );
+    }
+  }, [messages]);
+
   return (
     <ChatContext.Provider value={{
       sessions,
@@ -195,6 +224,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       deleteSession,
       sendMessage,
       reloadSessions,
+      setFeedback,
     }}>
       {children}
     </ChatContext.Provider>

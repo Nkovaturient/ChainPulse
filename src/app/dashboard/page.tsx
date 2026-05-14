@@ -98,21 +98,41 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Open Console CTA */}
-        <button
-          onClick={() => router.push('/app')}
-          className="w-full glow-btn rounded-2xl p-5 text-left flex items-center justify-between group transition-all duration-300"
-          style={{
-            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-            boxShadow: '0 4px 24px rgba(99,102,241,.35)',
-          }}
-        >
-          <div>
-            <div className="text-lg font-bold text-white mb-1">Open Intelligence Console</div>
-            <div className="text-sm text-white/65">Ask anything about crypto in plain language</div>
-          </div>
-          <span className="text-2xl group-hover:translate-x-1 transition-transform text-white/80">→</span>
-        </button>
+        {/* Primary CTAs */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            onClick={() => router.push('/app')}
+            className="glow-btn rounded-2xl p-5 text-left flex items-center justify-between group transition-all duration-300"
+            style={{
+              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+              boxShadow: '0 4px 24px rgba(99,102,241,.35)',
+            }}
+          >
+            <div>
+              <div className="text-base font-bold text-white mb-1">Intelligence Console</div>
+              <div className="text-xs text-white/65">Ask anything about crypto</div>
+            </div>
+            <span className="text-2xl group-hover:translate-x-1 transition-transform text-white/80">→</span>
+          </button>
+          <button
+            onClick={() => router.push('/explorer')}
+            className="rounded-2xl p-5 text-left flex items-center justify-between group transition-all duration-300 border"
+            style={{
+              background: 'var(--bg-card)',
+              borderColor: 'var(--border)',
+            }}
+          >
+            <div>
+              <div className="text-base font-bold mb-1 flex items-center gap-1.5" style={{ color: 'var(--text)' }}>
+                🔍 Wallet Explorer
+              </div>
+              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                Multichain wallet lookup + Q&A
+              </div>
+            </div>
+            <span className="text-2xl group-hover:translate-x-1 transition-transform" style={{ color: 'var(--text-muted)' }}>→</span>
+          </button>
+        </div>
 
         {/* Quick actions */}
         <div>

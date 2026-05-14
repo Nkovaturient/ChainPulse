@@ -2,12 +2,15 @@ import { prisma } from '@/lib/db';
 import { Prisma } from '@prisma/client';
 import type { QueryResponse } from '@/types';
 
+export type FeedbackValue = 'up' | 'down' | null;
+
 export interface StoredMessage {
   id: string;
   sessionId: string;
   role: 'user' | 'assistant';
   text: string;
   dataJson: QueryResponse | null;
+  feedback: FeedbackValue | null;
   createdAt: Date;
 }
 
@@ -64,6 +67,7 @@ export async function getMessages(sessionId: string, userId: string): Promise<St
     ...r,
     role: r.role as 'user' | 'assistant',
     dataJson: r.dataJson as QueryResponse | null,
+    feedback: (r.feedback as FeedbackValue) ?? null,
   }));
 }
 
@@ -84,7 +88,32 @@ export async function addMessage(
       data: { updatedAt: new Date() },
     }),
   ]);
-  return { ...msg, role: msg.role as 'user' | 'assistant', dataJson: msg.dataJson as QueryResponse | null };
+  return {
+    ...msg,
+    role: msg.role as 'user' | 'assistant',
+    dataJson: msg.dataJson as QueryResponse | null,
+    feedback: (msg.feedback as FeedbackValue) ?? null,
+  };
+}
+
+/** Set or clear thumbs feedback on an assistant message. Verifies ownership via session join. */
+export async function setFeedback(
+  messageId: string,
+  userId: string,
+  value: FeedbackValue,
+): Promise<boolean> {
+  // Ensure the message belongs to a session this user owns
+  const msg = await prisma.chatMessage.findFirst({
+    where: { id: messageId, session: { userId } },
+    select: { id: true },
+  });
+  if (!msg) return false;
+
+  await prisma.chatMessage.update({
+    where: { id: messageId },
+    data: { feedback: value },
+  });
+  return true;
 }
 
 /** Auto-generate a title from the first user message (≤ 40 chars). */

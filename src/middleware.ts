@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { SESSION_COOKIE, verifyToken } from '@/lib/auth';
 import { safePostAuthPath } from '@/lib/auth-redirect';
 
-const PROTECTED = ['/dashboard', '/app'];
+const PROTECTED = ['/dashboard', '/app', '/explorer'];
 const AUTH_ONLY  = ['/login', '/signup'];
 
 export async function middleware(req: NextRequest) {
@@ -30,5 +30,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/app/:path*', '/login', '/signup'],
+  matcher: ['/dashboard/:path*', '/app/:path*', '/explorer/:path*', '/login', '/signup'],
 };

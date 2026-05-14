@@ -92,6 +92,13 @@ export default function LandingPage() {
             <>
               <button
                 type="button"
+                onClick={() => router.push('/explorer')}
+                className="text-xs px-4 py-2 rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/20 transition-colors font-medium flex items-center gap-1.5"
+              >
+                <span>🔍</span> Explorer
+              </button>
+              <button
+                type="button"
                 onClick={() => router.push('/dashboard')}
                 className="text-xs px-4 py-2 rounded-full font-semibold text-white transition-all hover:opacity-90 shadow-lg shadow-indigo-500/20"
                 style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
