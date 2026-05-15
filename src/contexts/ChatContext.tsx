@@ -55,7 +55,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [sessionsLoading, setSessionsLoading] = useState(false);
+  // Start `true`: we always fetch on mount. Keeping the SSR & first client
+  // render in the same "loading" branch prevents a hydration mismatch in
+  // <Sidebar> (loading spinner vs "No chats yet").
+  const [sessionsLoading, setSessionsLoading] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const pendingId = useRef(0);
 
