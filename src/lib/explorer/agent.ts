@@ -1,10 +1,12 @@
 /**
  * Explorer-scoped agent: answers natural-language questions about a specific wallet.
- * Has access to wallet-inspection tools (balance, tokens, recent txns) across all
- * supported chains. Refuses to fabricate — only reports what the tools return.
+ * Snapshot-first architecture — tools only for drill-down the snapshot lacks.
  */
 import Anthropic from '@anthropic-ai/sdk';
 import type { Language } from '@/types';
+import { buildExplorerSystem, languageName } from '@/lib/agent-prompts';
+import { MODELS, TOKEN_BUDGETS, CONTEXT_LIMITS } from '@/lib/agent-config';
+import { trimHistoryForModel } from '@/lib/history-context';
 import { CHAINS, type ChainKey, isChainKey } from './chains';
 import {
   getNativeBalance,
@@ -22,8 +24,10 @@ const TOOL_DEFS: Anthropic.Tool[] = [
   {
     name: 'get_native_balance',
     description:
-      "Get the current native-token balance (ETH/BNB/POL/AVAX) of the wallet on a specific chain. " +
-      "Returns the human-readable amount and USD value at current price.",
+      'Current native-token balance for this wallet on one chain.\n' +
+      'Returns: chain, amount (human-readable), symbol (ETH/BNB/POL/AVAX), pricePerUnit, usdValue.\n' +
+      'USE WHEN: snapshot per-chain balance is missing/stale, or user asks about one chain in isolation.\n' +
+      'DO NOT USE: when snapshot already has accurate perChain.totalUsd for that chain.',
     input_schema: {
       type: 'object',
       properties: {
@@ -35,13 +39,15 @@ const TOOL_DEFS: Anthropic.Tool[] = [
   {
     name: 'get_recent_transactions',
     description:
-      "Get the most recent native transactions for the wallet on a specific chain (sorted newest first). " +
-      "Use for 'what did this wallet do recently', 'biggest tx', 'last activity', etc.",
+      'Native transactions for this wallet on one chain (newest first).\n' +
+      'Returns: hash, from, to, valueNative, valueUsd, timestamp, direction (in/out).\n' +
+      'USE WHEN: "biggest tx", "last activity", "what did this wallet do recently", time-bounded activity.\n' +
+      'DO NOT USE: ERC-20 token history (use get_token_transfers).',
     input_schema: {
       type: 'object',
       properties: {
         chain: { type: 'string', enum: CHAINS.map((c) => c.key) },
-        limit: { type: 'number', description: 'How many to fetch, max 25', default: 10 },
+        limit: { type: 'number', description: 'Max 25. Default 10.', default: 10 },
       },
       required: ['chain'],
     },
@@ -49,61 +55,24 @@ const TOOL_DEFS: Anthropic.Tool[] = [
   {
     name: 'get_token_transfers',
     description:
-      "Get recent ERC-20 token transfers for the wallet on a specific chain. " +
-      "Use to enumerate what tokens the wallet has interacted with, or to spot stablecoin/airdrop activity.",
+      'ERC-20 token transfers for this wallet on one chain (newest first).\n' +
+      'Returns: token symbol, amount, from, to, timestamp, direction.\n' +
+      'USE WHEN: stablecoin holdings/flows, airdrop detection, "what tokens", DeFi interaction history.\n' +
+      'DO NOT USE: native ETH/gas txs (use get_recent_transactions).',
     input_schema: {
       type: 'object',
       properties: {
         chain: { type: 'string', enum: CHAINS.map((c) => c.key) },
-        limit: { type: 'number', description: 'How many to fetch, max 100', default: 25 },
+        limit: { type: 'number', description: 'Max 100. Default 25.', default: 25 },
       },
       required: ['chain'],
     },
   },
 ];
 
-const SYSTEM = (address: string, langName: string, snapshot: WalletReport) => `You are ChainPulse Explorer, a forensic on-chain analyst. The user is asking about wallet address: ${address}
-
-You have already been given a SNAPSHOT of this wallet's current state across all supported chains (Ethereum, Base, Arbitrum, Optimism, Polygon, BSC, Avalanche). Use the snapshot first — only call tools when the user asks for something the snapshot doesn't contain (e.g. drilling into specific txns, looking up more transfers, checking a chain in detail).
-
-SNAPSHOT (compact JSON):
-${JSON.stringify({
-  netWorthUsd: Math.round(snapshot.netWorthUsd * 100) / 100,
-  perChain: snapshot.perChain.map((p) => ({
-    chain: p.chain,
-    totalUsd: Math.round(p.totalUsd * 100) / 100,
-    txCount: p.txCount,
-    lastActive: p.lastActive,
-  })),
-  topTokens: snapshot.tokens.slice(0, 10).map((t) => ({
-    chain: t.chain,
-    symbol: t.symbol,
-    amount: t.amount,
-    usd: t.usd,
-  })),
-  recentActivity: snapshot.recentActivity.slice(0, 8).map((a) => ({
-    chain: a.chain,
-    direction: a.direction,
-    valueNative: a.valueNative,
-    valueUsd: a.valueUsd,
-    timestamp: a.timestamp,
-    hash: a.hash,
-  })),
-}, null, 2)}
-
-Respond in ${langName}.
-
-DOCTRINE:
-- ONLY report facts present in the snapshot or returned by tools. NEVER invent balances, tx hashes, counterparties, or addresses.
-- When asked about a specific token/protocol the snapshot doesn't mention, call the appropriate tool. If still no data, say "no on-chain activity found for that".
-- Be concrete: cite chain names, exact USD figures, timestamps. Format numbers with thousands separators where helpful.
-- Default response: 2-4 sentences. Lists only when comparing ≥3 items.
-- Use **bold** for chain names, token symbols, and key numbers.
-- No headers (#, ##). No throat-clearing intros. Lead with the answer.
-- If the wallet appears empty or dormant on the queried chains, say so plainly.
-- Always end with a single ⚠ line if the user asks for trading/risk inference. Never give financial advice.
-
-The wallet address is fixed for this conversation — do not ask the user to re-supply it.`;
+function wrapPayload(source: string, data: unknown): string {
+  return JSON.stringify({ source, fetchedAt: new Date().toISOString(), data });
+}
 
 interface ExecResult {
   payload: string;
@@ -114,7 +83,7 @@ async function executeTool(name: string, input: unknown, address: string): Promi
   const args = (input ?? {}) as Record<string, unknown>;
   const chain = String(args.chain ?? '');
   if (!isChainKey(chain)) {
-    return { payload: JSON.stringify({ error: 'invalid chain' }) };
+    return { payload: wrapPayload('explorer', { error: 'invalid chain' }) };
   }
 
   try {
@@ -126,7 +95,7 @@ async function executeTool(name: string, input: unknown, address: string): Promi
         ]);
         const price = prices[chain] ?? 0;
         return {
-          payload: JSON.stringify({
+          payload: wrapPayload('etherscan', {
             chain,
             amount: amount ?? 0,
             symbol: CHAINS.find((c) => c.key === chain)!.nativeSymbol,
@@ -138,19 +107,19 @@ async function executeTool(name: string, input: unknown, address: string): Promi
       case 'get_recent_transactions': {
         const limit = Math.min(Number(args.limit ?? 10), 25);
         const txns = await getRecentTransactions(address, chain, limit);
-        return { payload: JSON.stringify(txns) };
+        return { payload: wrapPayload('etherscan', txns) };
       }
       case 'get_token_transfers': {
         const limit = Math.min(Number(args.limit ?? 25), 100);
         const transfers = await getTokenTransfers(address, chain, limit);
-        return { payload: JSON.stringify(transfers) };
+        return { payload: wrapPayload('etherscan', transfers) };
       }
       default:
-        return { payload: JSON.stringify({ error: `unknown tool: ${name}` }) };
+        return { payload: wrapPayload('explorer', { error: `unknown tool: ${name}` }) };
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'fetch failed';
-    return { payload: JSON.stringify({ error: msg }), error: { key: name, msg } };
+    return { payload: wrapPayload(name, { error: msg }), error: { key: name, msg } };
   }
 }
 
@@ -160,7 +129,7 @@ export interface ExplorerAgentResult {
   iterations: number;
 }
 
-const MAX_ITERATIONS = 4;
+const MAX_ITERATIONS = CONTEXT_LIMITS.maxAgentIterations;
 
 export async function runExplorerAgent(
   address: string,
@@ -169,10 +138,10 @@ export async function runExplorerAgent(
   history: Array<{ role: 'user' | 'assistant'; text: string }>,
   language: Language,
 ): Promise<ExplorerAgentResult> {
-  const langName = language === 'hi' ? 'Hindi' : language === 'bn' ? 'Bengali' : 'English';
   const client = getClient();
 
-  const historyMessages: Anthropic.MessageParam[] = history.slice(-4).map((h) => ({
+  const trimmed = trimHistoryForModel(history);
+  const historyMessages: Anthropic.MessageParam[] = trimmed.map((h) => ({
     role: h.role, content: h.text,
   }));
   const messages: Anthropic.MessageParam[] = [
@@ -189,9 +158,9 @@ export async function runExplorerAgent(
     let response: Anthropic.Message;
     try {
       response = await client.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 900,
-        system: SYSTEM(address, langName, snapshot),
+        model: MODELS.agent,
+        max_tokens: TOKEN_BUDGETS.explorer,
+        system: buildExplorerSystem(address, languageName(language), snapshot),
         tools: TOOL_DEFS,
         messages,
       });

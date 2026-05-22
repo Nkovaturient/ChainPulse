@@ -1,5 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { Language, QueryResponse } from '@/types';
+import { buildSummarizerSystem, languageName } from '@/lib/agent-prompts';
+import { MODELS, TOKEN_BUDGETS } from '@/lib/agent-config';
+import { compactForModel } from '@/lib/compact-payload';
+import { trimHistoryForModel } from '@/lib/history-context';
 
 function getClient() {
   return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -19,48 +23,30 @@ function normalizeMarkdown(text: string): string {
     .trim();
 }
 
-const SUMMARIZER_SYSTEM = (langName: string) => `You are ChainPulse, a senior crypto research analyst. Respond in ${langName}.
-
-You are given a user query, optional prior conversation, and a JSON payload of live data already fetched on your behalf (prices, news, whale txns, TVL, staking yields). Your job is to synthesize a crisp, insightful answer using that data.
-
-OUTPUT DOCTRINE:
-- Default: 2–4 concise sentences. Numbers-first. Source-tagged.
-- Elaborate only when query contains: "explain", "deep dive", "compare", "details", "walk me through", "why", "how does", or asks for a list of 3+ items.
-- Lists when comparing ≥3 items; prose otherwise. Use **bold** for key terms/numbers.
-- No headers (#, ##, ###). No blockquotes. Plain markdown — paragraphs, **bold**, and "- bullet" only.
-- Tag claims when relevant:
-  • Live numbers fetched from CoinGecko/DefiLlama/RSS need no tag (they're shown alongside in cards).
-  • If you reference something NOT in the data payload, mark it "(general knowledge)" or "(unconfirmed)".
-- If the data payload is missing what the user asked for, say so plainly — never fabricate prices, market caps, TVLs, or APYs.
-- NEVER give financial advice. Always close with a single ⚠ line when discussing prices/yields/risk.
-
-STYLE:
-- No hedging filler ("it's worth noting", "as you may know", "as an AI"). Just say it.
-- No throat-clearing intros. Lead with the answer.
-- Keep total response under 180 words unless the user explicitly asked for depth.`;
-
 export async function generateSummary(
   data: Partial<QueryResponse>,
   language: Language,
   query: string,
   history: HistoryTurn[] = [],
 ): Promise<string> {
-  const langName = language === 'hi' ? 'Hindi' : language === 'bn' ? 'Bengali' : 'English';
   try {
-    const historyMessages: Anthropic.MessageParam[] = history.slice(-4).map((h) => ({
+    const trimmed = trimHistoryForModel(history);
+    const historyMessages: Anthropic.MessageParam[] = trimmed.map((h) => ({
       role: h.role,
       content: h.text,
     }));
 
+    const compactData = compactForModel(data);
+
     const msg = await getClient().messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 500,
-      system: SUMMARIZER_SYSTEM(langName),
+      model: MODELS.synthesize,
+      max_tokens: TOKEN_BUDGETS.synthesize,
+      system: buildSummarizerSystem(languageName(language)),
       messages: [
         ...historyMessages,
         {
           role: 'user',
-          content: `User asked: '${query}'.\n\nFetched data:\n${JSON.stringify(data, null, 2)}`,
+          content: `User asked: '${query}'.\n\nFetched data (live — cite these numbers, do not invent others):\n${JSON.stringify(compactData)}`,
         },
       ],
     });

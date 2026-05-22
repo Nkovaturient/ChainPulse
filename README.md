@@ -29,6 +29,91 @@ Most people juggling markets, staking, or “what moved on-chain today?” bounc
 
 ---
 
+### Agent architecture
+
+ChainPulse runs two agent surfaces with shared doctrine (`src/lib/agent-prompts.ts`):
+
+| Surface | Entry | Model path |
+|---------|-------|------------|
+| **Intelligence console** (`/app`) | `POST /api/query` | Haiku router → **simple** (parallel fetch + Haiku synthesizer) or **complex** (Sonnet tool loop, ≤3 turns) |
+| **Wallet explorer** (`/explorer`) | `POST /api/explorer/query` | Snapshot + Sonnet tool loop scoped to one address |
+
+**Routing (console):** Haiku emits `{ intents, coins, language, complexity }`. Simple queries fan out to external APIs in parallel (zero LLM cost), then Haiku synthesizes from compact payload. Complex queries enter a Sonnet tool loop (max 3 iterations).
+
+**Tools (console):** `get_prices` · `get_news` · `get_whale_transactions` · `get_defi_tvl` · `get_staking_yields` — each with structured descriptions (returns, use-when, synthesis hints).
+
+**Tools (explorer):** `get_native_balance` · `get_recent_transactions` · `get_token_transfers` — snapshot-first; tools only for drill-down.
+
+**Response doctrine (both agents):**
+1. Direct answer from live data
+2. Evidence with cited numbers
+3. One insight layer (mechanism / on-chain implication) — tagged `(general knowledge)` when not from fetch
+4. Explicit data limits when insufficient
+5. Single ⚠ disclaimer on price/yield/risk topics — **never financial advice**
+
+**Data sources:** CoinGecko (prices) · DefiLlama (TVL/yields) · Etherscan v2 + Solscan (whales) · Cointelegraph/Decrypt RSS (news) · Etherscan v2 multichain (explorer).
+
+### Sustainable token strategy
+
+ChainPulse separates **cheap routing/synthesis** from **expensive reasoning**. All budgets live in `src/lib/agent-config.ts`.
+
+```
+                    ┌─────────────────────────────────────────┐
+  User query ──────►│ Haiku router (~200 out tokens)          │
+                    │ → intents · coins · simple | complex    │
+                    └──────────────┬──────────────────────────┘
+                                   │
+              simple (~80% queries)│ complex (~20%)
+                                   ▼
+         ┌─────────────────────────┴──────────────────────────┐
+         │ parallel API fetch (no LLM)                          │
+         │ CoinGecko · DefiLlama · Etherscan · RSS              │
+         └─────────────────────────┬──────────────────────────┘
+                                   ▼
+         ┌─────────────────────────┴──────────────────────────┐
+         │ Haiku synthesizer (~550 out)                         │
+         │ compact payload · shared doctrine                    │
+         └──────────────────────────────────────────────────────┘
+
+         complex path ──► Sonnet agent loop (≤3 iterations, ~900 out/turn)
+                            tools choose fetches · compact tool results
+```
+
+| Stage | Model | When | Typical cost profile |
+|-------|-------|------|----------------------|
+| Router | Haiku 4.5 | Every console query | Smallest — JSON only, no tools |
+| Synthesizer | Haiku 4.5 | `simple` path after parallel fetch | Low — data pre-fetched, no tool loop |
+| Agent | Sonnet 4.6 | `complex` path + explorer | Higher — reserved for multi-step reasoning |
+
+**Context discipline** (`compact-payload.ts`, `history-context.ts`):
+
+- History: last **2 turns**, each truncated to **300 chars** (full text stays in DB/UI cards)
+- Tool results: sparklines sampled to **24 points**, whales/news capped at **6**, prices at **5**
+- Agent loop capped at **3 iterations** (most queries resolve in 1–2)
+- Classifier prefers **`simple`** when one clear intent — Sonnet only when orchestration is needed
+
+**Why Haiku → Sonnet, not Sonnet everywhere:** fetchers do the heavy lifting (live prices, TVL, txns). The LLM's job on simple queries is *interpretation*, not retrieval — Haiku with structured doctrine is sufficient and ~10× cheaper per token. Sonnet earns its cost on tool selection, comparisons, backtest-limit honesty, and wallet forensics.
+
+**Feedback loop (not online RL):** thumbs up/down on assistant messages (`chat_messages.feedback`) records human signal for **offline** prompt and routing review. ChainPulse does not retrain models in-request — that would add latency and cost without guaranteed gain. The sustainable path: collect feedback → periodic prompt/routing tuning → A/B on classifier thresholds.
+
+**Tuning knobs** (edit `agent-config.ts` only):
+
+```ts
+MODELS.synthesize  // swap to Sonnet if Haiku quality drops on your workload
+CONTEXT_LIMITS.historyTurns       // 2 → 3 for more multi-turn memory (+tokens)
+CONTEXT_LIMITS.maxAgentIterations // 3 → 2 to hard-cap complex-path billing
+TOKEN_BUDGETS.synthesize            // 550 — raise if answers feel clipped
+```
+
+**Prudent billing guardrails already in place:**
+
+- Query max length 500 chars
+- No wallet signing / no repeated full-history replay
+- Snapshot-first explorer (tools only on drill-down)
+- `Promise.allSettled` on external APIs — failed fetch ≠ retry loop burning tokens
+
+---
+
 ### Run locally
 
 ```bash
