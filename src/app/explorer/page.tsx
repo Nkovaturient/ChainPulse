@@ -4,9 +4,15 @@ import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AddressInput from '@/components/explorer/AddressInput';
 import WalletOverview from '@/components/explorer/WalletOverview';
+import AllocationCharts from '@/components/explorer/AllocationCharts';
+import PerformanceChart from '@/components/explorer/PerformanceChart';
+import PortfolioInsights from '@/components/explorer/PortfolioInsights';
+import WalletTracker from '@/components/explorer/WalletTracker';
 import TokenList from '@/components/explorer/TokenList';
 import TxTimeline from '@/components/explorer/TxTimeline';
 import ExplorerChat from '@/components/explorer/ExplorerChat';
+import { CHAIN_COUNT, chainNamesBlurb } from '@/lib/explorer/chains';
+import { isPremiumTier } from '@/lib/tier';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import type { WalletReport } from '@/lib/explorer/types';
@@ -110,14 +116,15 @@ function ExplorerInner() {
       </header>
 
       <main className="flex-1 px-4 py-8">
-        <div className="max-w-3xl mx-auto space-y-6">
+        <div className="max-w-5xl mx-auto flex flex-col lg:flex-row gap-6">
+          <div className="flex-1 min-w-0 space-y-6">
           {/* Hero */}
           <div className="text-center">
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-2" style={{ color: 'var(--text)' }}>
               Multichain wallet <span className="gradient-text">explorer</span>
             </h1>
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              Inspect any EVM wallet across 7 chains — no wallet connection, no extension. Read-only on-chain truth.
+              Inspect any EVM wallet across {CHAIN_COUNT} chains — no wallet connection, no extension. Read-only on-chain truth.
             </p>
           </div>
 
@@ -154,6 +161,9 @@ function ExplorerInner() {
                 </div>
               )}
               <WalletOverview report={report} />
+              <AllocationCharts report={report} />
+              <PerformanceChart report={report} />
+              <PortfolioInsights report={report} premium={isPremiumTier(user?.tier ?? 'free')} />
               <ExplorerChat address={report.address} lang={lang} />
               <TokenList tokens={report.tokens} limit={10} />
               <TxTimeline activity={report.recentActivity} />
@@ -176,10 +186,15 @@ function ExplorerInner() {
               style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
               <p className="text-2xl mb-3">🔍</p>
               <p className="font-semibold" style={{ color: 'var(--text)' }}>How it works</p>
-              <p>Paste any EVM wallet address. We fetch its native + ERC-20 balances and recent transactions across Ethereum, Base, Arbitrum, Optimism, Polygon, BSC, and Avalanche — in parallel.</p>
+              <p>Paste any EVM wallet address. We fetch its native + ERC-20 balances and recent transactions across {chainNamesBlurb()} — in parallel.</p>
               <p>Then ask anything about it. The agent uses live on-chain tools to answer — no guessing, no hallucination.</p>
             </div>
           )}
+          </div>
+
+          <aside className="w-full lg:w-72 flex-shrink-0 space-y-4">
+            <WalletTracker currentAddress={address} onInspect={handleSubmit} />
+          </aside>
         </div>
       </main>
 

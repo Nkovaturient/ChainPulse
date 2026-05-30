@@ -100,7 +100,7 @@ async function executeTool(name: string, input: unknown, address: string): Promi
             amount: amount ?? 0,
             symbol: CHAINS.find((c) => c.key === chain)!.nativeSymbol,
             pricePerUnit: price,
-            usdValue: (amount ?? 0) * price,
+            usdValue: (amount ?? 0) * Number(price),
           }),
         };
       }

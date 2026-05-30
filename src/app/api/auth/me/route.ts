@@ -19,6 +19,7 @@ export async function GET() {
         email: user.email,
         username: user.username,
         role: user.role,
+        tier: user.tier,
         created_at: user.createdAt.toISOString(),
         last_login: user.lastLogin?.toISOString() ?? null,
       },

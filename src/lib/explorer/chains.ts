@@ -3,7 +3,9 @@
  * One Etherscan V2 API key covers all of these — pass chainid in the query.
  */
 
-export type ChainKey = 'ethereum' | 'base' | 'arbitrum' | 'optimism' | 'polygon' | 'bsc' | 'avalanche';
+export type ChainKey =
+  | 'ethereum' | 'base' | 'arbitrum' | 'optimism' | 'polygon' | 'bsc' | 'avalanche'
+  | 'linea' | 'scroll' | 'zksync' | 'mantle' | 'blast' | 'gnosis' | 'polygonzkevm' | 'celo';
 
 export interface ChainSpec {
   key: ChainKey;
@@ -67,6 +69,54 @@ export const CHAINS: ChainSpec[] = [
     nativeDecimals: 18, explorerBaseUrl: 'https://snowtrace.io',
     color: '#e84142',
   },
+  {
+    key: 'linea', chainId: 59144, name: 'Linea', short: 'LINEA',
+    nativeSymbol: 'ETH', nativeCoingeckoId: 'ethereum', cgPlatform: 'linea',
+    nativeDecimals: 18, explorerBaseUrl: 'https://lineascan.build',
+    color: '#61dfff',
+  },
+  {
+    key: 'scroll', chainId: 534352, name: 'Scroll', short: 'SCRL',
+    nativeSymbol: 'ETH', nativeCoingeckoId: 'ethereum', cgPlatform: 'scroll',
+    nativeDecimals: 18, explorerBaseUrl: 'https://scrollscan.com',
+    color: '#f0a070',
+  },
+  {
+    key: 'zksync', chainId: 324, name: 'zkSync Era', short: 'ZKS',
+    nativeSymbol: 'ETH', nativeCoingeckoId: 'ethereum', cgPlatform: 'zksync',
+    nativeDecimals: 18, explorerBaseUrl: 'https://era.zksync.network',
+    color: '#8c8dfc',
+  },
+  {
+    key: 'mantle', chainId: 5000, name: 'Mantle', short: 'MNT',
+    nativeSymbol: 'MNT', nativeCoingeckoId: 'mantle', cgPlatform: 'mantle',
+    nativeDecimals: 18, explorerBaseUrl: 'https://mantlescan.xyz',
+    color: '#65b3ae',
+  },
+  {
+    key: 'blast', chainId: 81457, name: 'Blast', short: 'BLAST',
+    nativeSymbol: 'ETH', nativeCoingeckoId: 'ethereum', cgPlatform: 'blast',
+    nativeDecimals: 18, explorerBaseUrl: 'https://blastscan.io',
+    color: '#fcd535',
+  },
+  {
+    key: 'gnosis', chainId: 100, name: 'Gnosis', short: 'GNO',
+    nativeSymbol: 'xDAI', nativeCoingeckoId: 'xdai', cgPlatform: 'xdai',
+    nativeDecimals: 18, explorerBaseUrl: 'https://gnosisscan.io',
+    color: '#04795b',
+  },
+  {
+    key: 'polygonzkevm', chainId: 1101, name: 'Polygon zkEVM', short: 'zkEVM',
+    nativeSymbol: 'ETH', nativeCoingeckoId: 'ethereum', cgPlatform: 'polygon-zkevm',
+    nativeDecimals: 18, explorerBaseUrl: 'https://zkevm.polygonscan.com',
+    color: '#7b3fe4',
+  },
+  {
+    key: 'celo', chainId: 42220, name: 'Celo', short: 'CELO',
+    nativeSymbol: 'CELO', nativeCoingeckoId: 'celo', cgPlatform: 'celo',
+    nativeDecimals: 18, explorerBaseUrl: 'https://celoscan.io',
+    color: '#35d07f',
+  },
 ];
 
 export const CHAIN_BY_KEY: Record<ChainKey, ChainSpec> = CHAINS.reduce(
@@ -76,4 +126,13 @@ export const CHAIN_BY_KEY: Record<ChainKey, ChainSpec> = CHAINS.reduce(
 
 export function isChainKey(k: string): k is ChainKey {
   return (CHAINS as readonly { key: string }[]).some((c) => c.key === k);
+}
+
+export const CHAIN_COUNT = CHAINS.length;
+
+/** Comma-separated chain names for marketing / empty-state copy. */
+export function chainNamesBlurb(max = CHAIN_COUNT): string {
+  const names = CHAINS.slice(0, max).map((c) => c.name);
+  if (max >= CHAIN_COUNT) return names.join(', ');
+  return `${names.join(', ')}, and more`;
 }
