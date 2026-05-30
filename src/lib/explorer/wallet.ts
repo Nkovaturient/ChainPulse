@@ -12,7 +12,13 @@ import {
   type EtherscanTokenTx,
   type EtherscanTx,
 } from './etherscan-v2';
-import { fetchNativePrices, fetchTokenPrices } from './valuation';
+import {
+  fetchNativePrices,
+  fetchTokenPrices,
+  fetchNativeCategory,
+  fetchTokenCategory,
+  mapLimited,
+} from './valuation';
 import type {
   WalletReport,
   NativeBalance,
@@ -64,13 +70,15 @@ export async function buildWalletReport(
   // ── Assemble native balances ──────────────────────────────────────────────
   const natives: NativeBalance[] = perChainData.map(({ chain, nativeAmount }) => {
     const spec = CHAIN_BY_KEY[chain];
-    const price = nativePrices[chain] ?? 0;
+    const info = nativePrices[chain] ?? { usd: 0, change24h: null };
     return {
       chain,
       symbol: spec.nativeSymbol,
       amount: nativeAmount,
-      pricePerUnit: price,
-      usd: nativeAmount * price,
+      pricePerUnit: info.usd,
+      usd: nativeAmount * info.usd,
+      change24h: info.change24h,
+      category: null,
     };
   });
 
@@ -105,7 +113,8 @@ export async function buildWalletReport(
         // Avoid Number(BigInt) precision loss for huge balances
         const amount = Number(bal) / 10 ** decimals;
         if (!Number.isFinite(amount) || amount === 0) return;
-        const price = prices[c] ?? null;
+        const pi = prices[c] ?? null;
+        const price = pi?.usd ?? null;
         tokens.push({
           chain,
           contractAddress: c,
@@ -115,6 +124,8 @@ export async function buildWalletReport(
           amount,
           pricePerUnit: price,
           usd: price === null ? null : amount * price,
+          change24h: pi?.change24h ?? null,
+          category: null,
         });
       });
     }),
@@ -123,11 +134,30 @@ export async function buildWalletReport(
   // Sort tokens by USD value desc (unknown-price tokens go last)
   tokens.sort((a, b) => (b.usd ?? -1) - (a.usd ?? -1));
 
+  // ── Live category enrichment (bounded to top holdings to respect rate limits)
+  type CatTarget =
+    | { kind: 'native'; ref: NativeBalance }
+    | { kind: 'token'; ref: TokenHolding };
+  const catTargets: CatTarget[] = [
+    ...natives.filter((n) => n.usd > 0).map((ref) => ({ kind: 'native' as const, ref })),
+    ...tokens.filter((t) => (t.usd ?? 0) > 0).map((ref) => ({ kind: 'token' as const, ref })),
+  ]
+    .sort((a, b) => (b.ref.usd ?? 0) - (a.ref.usd ?? 0))
+    .slice(0, 12);
+
+  await mapLimited(catTargets, 4, async (target) => {
+    const cat =
+      target.kind === 'native'
+        ? await fetchNativeCategory(CHAIN_BY_KEY[target.ref.chain].nativeCoingeckoId)
+        : await fetchTokenCategory(target.ref.chain, target.ref.contractAddress);
+    target.ref.category = cat;
+  });
+
   // ── Build recent activity timeline (merged across chains) ─────────────────
   const recentActivity: ChainActivity[] = [];
   for (const { chain, txns } of perChainData) {
     const spec = CHAIN_BY_KEY[chain];
-    const price = nativePrices[chain] ?? 0;
+    const price = nativePrices[chain]?.usd ?? 0;
     for (const tx of txns) {
       if (tx.isError === '1') continue;
       const valueNative = Number(BigInt(tx.value || '0')) / 10 ** spec.nativeDecimals;

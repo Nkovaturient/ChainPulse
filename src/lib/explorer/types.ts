@@ -6,6 +6,8 @@ export interface NativeBalance {
   amount: number;      // human-readable (divided by 10^decimals)
   usd: number;         // USD value at lookup time
   pricePerUnit: number; // USD per native unit
+  change24h: number | null; // % price change over 24h
+  category: string | null;  // display bucket (AI, DeFi, Layer 1...)
 }
 
 export interface TokenHolding {
@@ -17,6 +19,8 @@ export interface TokenHolding {
   amount: number;     // human-readable balance
   usd: number | null; // null when CoinGecko has no listing for the token
   pricePerUnit: number | null;
+  change24h: number | null; // % price change over 24h
+  category: string | null;  // display bucket (AI, DeFi, Layer 1...)
 }
 
 export interface ChainActivity {

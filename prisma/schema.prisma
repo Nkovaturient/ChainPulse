@@ -14,18 +14,38 @@ enum UserRole {
   tech_savvy
 }
 
+enum UserTier {
+  free
+  premium
+}
+
 model User {
-  id              String        @id @default(uuid()) @db.Uuid
-  email           String        @unique
-  username        String        @unique
-  hashedPassword  String        @map("hashed_password")
-  role            UserRole      @default(just_exploring)
-  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-  lastLogin       DateTime?     @map("last_login") @db.Timestamptz(6)
+  id              String          @id @default(uuid()) @db.Uuid
+  email           String          @unique
+  username        String          @unique
+  hashedPassword  String          @map("hashed_password")
+  role            UserRole        @default(just_exploring)
+  tier            UserTier        @default(free)
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastLogin       DateTime?       @map("last_login") @db.Timestamptz(6)
   chatSessions    ChatSession[]
+  trackedWallets  TrackedWallet[]
 
   @@map("users")
   @@index([email], map: "users_email_idx")
+}
+
+model TrackedWallet {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  address   String
+  label     String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, address], map: "tracked_wallets_user_address_uniq")
+  @@map("tracked_wallets")
+  @@index([userId, createdAt], map: "tracked_wallets_user_created_idx")
 }
 
 model ChatSession {
