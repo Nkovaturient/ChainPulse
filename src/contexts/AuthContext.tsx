@@ -20,8 +20,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await fetch('/api/auth/me');
       if (res.ok) {
-        const { user } = (await res.json()) as { user: User | null };
-        setUser(user);
+        const { user } = (await res.json()) as { user: (User & { tier?: User['tier'] }) | null };
+        setUser(user ? { ...user, tier: user.tier ?? 'free' } : null);
       } else {
         setUser(null);
       }

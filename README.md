@@ -51,7 +51,47 @@ ChainPulse runs two agent surfaces with shared doctrine (`src/lib/agent-prompts.
 4. Explicit data limits when insufficient
 5. Single ⚠ disclaimer on price/yield/risk topics — **never financial advice**
 
-**Data sources:** CoinGecko (prices) · DefiLlama (TVL/yields) · Etherscan v2 + Solscan (whales) · Cointelegraph/Decrypt RSS (news) · Etherscan v2 multichain (explorer).
+**Data sources:** CoinGecko (prices + 24h change + token categories) · DefiLlama (TVL/yields) · Etherscan v2 + Solscan (whales) · Cointelegraph/Decrypt RSS (news) · Etherscan v2 multichain (explorer).
+
+### Wallet explorer (`/explorer`)
+
+Read-only multichain wallet inspection — no wallet connect. Paste any `0x…` address; ChainPulse builds one **`WalletReport`** (`src/lib/explorer/wallet.ts`) and treats it as the single source of truth for UI and agent context.
+
+**Chains (15 EVM):** Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Linea, Scroll, zkSync Era, Mantle, Blast, Gnosis, Polygon zkEVM, Celo — all defined in `src/lib/explorer/chains.ts` (`CHAINS`). Downstream logic (Etherscan fan-out, agent tools, marketing copy) reads from that registry only.
+
+**Data layer**
+
+| Module | Role |
+|--------|------|
+| `valuation.ts` | CoinGecko USD prices, `change24h`, bounded category lookups |
+| `categories.ts` | CoinGecko categories → display buckets (DeFi, L2, Meme, Stablecoin, …) |
+| `portfolio.ts` | Pure derivations: positions, coin/category allocation, 24h performance, insights, premium summary |
+
+**UI** (all take `WalletReport` — no duplicate fetch logic)
+
+- `WalletOverview` · `AllocationCharts` (coin + category donuts) · `PerformanceChart` (24h movers/laggards) · `PortfolioInsights` (flags; premium narrative when `tier === premium`)
+- `TokenList` · `TxTimeline` · `ExplorerChat` (Sonnet + explorer tools)
+- `WalletTracker` — DB-backed watchlist sidebar
+
+**API**
+
+| Route | Purpose |
+|-------|---------|
+| `GET /api/explorer/wallet/[address]` | Build and return `WalletReport` |
+| `POST /api/explorer/query` | Agent Q&A over a wallet snapshot |
+| `GET/POST /api/tracked-wallets` | List / add watchlist (server-enforced limits) |
+| `DELETE /api/tracked-wallets/[id]` | Remove tracked address |
+
+**Accounts & tiers** (`prisma/schema.prisma`)
+
+- `User.tier`: `free` (default) \| `premium`
+- `TrackedWallet`: per-user saved addresses (`@@unique([userId, address])`)
+- Limits (`src/lib/tier.ts`): **free = 3**, **premium = 100** wallets — enforced in API, surfaced on `/api/auth/me`
+
+```bash
+# After pulling explorer schema changes
+npx prisma migrate deploy --config prisma.config.ts
+```
 
 ### Sustainable token strategy
 
@@ -117,7 +157,9 @@ TOKEN_BUDGETS.synthesize            // 550 — raise if answers feel clipped
 ### Run locally
 
 ```bash
-npm install && npm run dev
+npm install
+npx prisma migrate deploy --config prisma.config.ts   # PostgreSQL + tracked wallets / tier
+npm run dev
 ```
 
 ---

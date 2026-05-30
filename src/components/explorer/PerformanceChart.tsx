@@ -43,6 +43,7 @@ export default function PerformanceChart({ report }: Props) {
   if (!perf.hasData) return null;
 
   const data = perf.items.slice(0, 10);
+  const chartHeight = Math.max(160, data.length * 30);
 
   return (
     <section className="space-y-3" id="performance">
@@ -67,8 +68,8 @@ export default function PerformanceChart({ report }: Props) {
           </div>
         </div>
 
-        <div className="w-full" style={{ height: Math.max(160, data.length * 30) }}>
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="w-full min-w-0" style={{ height: chartHeight }}>
+          <ResponsiveContainer width="100%" height={chartHeight} minWidth={0}>
             <BarChart data={data} layout="vertical" margin={{ left: 8, right: 16, top: 4, bottom: 4 }}>
               <XAxis type="number" hide domain={['dataMin', 'dataMax']} />
               <YAxis

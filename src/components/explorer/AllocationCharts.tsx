@@ -1,7 +1,9 @@
 'use client';
 
 import { useMemo } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip } from 'recharts';
+
+const DONUT_SIZE = 160;
 import { getCoinAllocation, getCategoryAllocation, type AllocSlice } from '@/lib/explorer/portfolio';
 import { CATEGORY_COLORS, type CategoryBucket } from '@/lib/explorer/categories';
 import type { WalletReport } from '@/lib/explorer/types';
@@ -60,25 +62,23 @@ function Donut({
       <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{title}</h3>
       <p className="text-[11px] mb-3" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>
       <div className="flex items-center gap-4 flex-col sm:flex-row">
-        <div className="w-40 h-40 flex-shrink-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={slices}
-                dataKey="usd"
-                nameKey="label"
-                innerRadius={44}
-                outerRadius={72}
-                paddingAngle={2}
-                stroke="none"
-              >
-                {slices.map((s, i) => (
-                  <Cell key={s.label} fill={colorFor(s, i)} />
-                ))}
-              </Pie>
-              <Tooltip content={<SliceTooltip />} />
-            </PieChart>
-          </ResponsiveContainer>
+        <div className="flex-shrink-0" style={{ width: DONUT_SIZE, height: DONUT_SIZE }}>
+          <PieChart width={DONUT_SIZE} height={DONUT_SIZE}>
+            <Pie
+              data={slices}
+              dataKey="usd"
+              nameKey="label"
+              innerRadius={44}
+              outerRadius={72}
+              paddingAngle={2}
+              stroke="none"
+            >
+              {slices.map((s, i) => (
+                <Cell key={s.label} fill={colorFor(s, i)} />
+              ))}
+            </Pie>
+            <Tooltip content={<SliceTooltip />} />
+          </PieChart>
         </div>
         <ul className="flex-1 w-full space-y-1.5">
           {slices.map((s, i) => (

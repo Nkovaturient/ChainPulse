@@ -127,3 +127,12 @@ export const CHAIN_BY_KEY: Record<ChainKey, ChainSpec> = CHAINS.reduce(
 export function isChainKey(k: string): k is ChainKey {
   return (CHAINS as readonly { key: string }[]).some((c) => c.key === k);
 }
+
+export const CHAIN_COUNT = CHAINS.length;
+
+/** Comma-separated chain names for marketing / empty-state copy. */
+export function chainNamesBlurb(max = CHAIN_COUNT): string {
+  const names = CHAINS.slice(0, max).map((c) => c.name);
+  if (max >= CHAIN_COUNT) return names.join(', ');
+  return `${names.join(', ')}, and more`;
+}
