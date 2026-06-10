@@ -53,10 +53,7 @@ export default function QueryInput({ lang, query, setQuery, onSubmit, isLoading 
           className="w-full px-4 pt-4 pb-2 text-sm bg-transparent border-none outline-none placeholder:opacity-40 leading-relaxed"
           style={{ color: 'var(--text)', fontFamily: 'inherit' }}
         />
-        <div className="flex items-center justify-between px-3 pb-3">
-          <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            ⏎ Submit · Shift+⏎ Newline
-          </span>
+        <div className="flex items-center justify-end px-3 pb-3">
           <button
             onClick={submit}
             disabled={isLoading || !query.trim()}
@@ -74,7 +71,6 @@ export default function QueryInput({ lang, query, setQuery, onSubmit, isLoading 
             ) : (
               <>
                 {tr.submit}
-                <span className="text-base">→</span>
               </>
             )}
           </button>
