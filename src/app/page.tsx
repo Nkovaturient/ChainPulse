@@ -2,8 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { AnimatePresence } from 'motion/react';
 import { useAuth } from '@/contexts/AuthContext';
+import SplashScreen from '@/components/SplashScreen';
 import type { PriceData } from '@/types';
+
+const SPLASH_KEY = 'chainpulse-splash-seen';
 
 const REFRESH_MS = 45_000;
 
@@ -66,8 +70,22 @@ export default function LandingPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const { prices, loading: pricesLoading, lastUpdated, refresh } = useLivePrices();
+  const [showSplash, setShowSplash] = useState(false);
+
+  useEffect(() => {
+    if (!sessionStorage.getItem(SPLASH_KEY)) setShowSplash(true);
+  }, []);
+
+  const handleSplashComplete = useCallback(() => {
+    sessionStorage.setItem(SPLASH_KEY, '1');
+    setShowSplash(false);
+  }, []);
 
   return (
+    <>
+      <AnimatePresence>
+        {showSplash && <SplashScreen key="splash" onComplete={handleSplashComplete} />}
+      </AnimatePresence>
     <div className="relative min-h-screen flex flex-col overflow-hidden">
       {/* Background layers */}
       <div className="hero-bg" />
@@ -337,5 +355,6 @@ export default function LandingPage() {
         ChainPulse · No financial advice · Data from CoinGecko, DefiLlama, Etherscan, Solscan, RSS feeds
       </footer>
     </div>
+    </>
   );
 }

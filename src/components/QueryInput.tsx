@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from 'react';
 import { QUICK_CHIPS, t } from '@/lib/translations';
-import { useTheme } from '@/contexts/ThemeContext';
 import type { Language } from '@/types';
 
 interface Props {
@@ -15,7 +14,6 @@ interface Props {
 
 export default function QueryInput({ lang, query, setQuery, onSubmit, isLoading }: Props) {
   const tr = t(lang);
-  const { theme } = useTheme();
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -32,14 +30,7 @@ export default function QueryInput({ lang, query, setQuery, onSubmit, isLoading 
 
   return (
     <div className="space-y-3">
-      <div
-        className="rounded-2xl border transition-all duration-200"
-        style={{
-          borderColor: 'var(--border)',
-          background: 'var(--bg-card)',
-          boxShadow: 'var(--shadow)',
-        }}
-      >
+      <div className="glass-input">
         <textarea
           ref={taRef}
           value={query}
@@ -57,11 +48,7 @@ export default function QueryInput({ lang, query, setQuery, onSubmit, isLoading 
           <button
             onClick={submit}
             disabled={isLoading || !query.trim()}
-            className="px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-40 flex items-center gap-2"
-            style={{
-              background: isLoading ? 'var(--border)' : 'var(--accent)',
-              color: '#fff',
-            }}
+            className="glass-cta px-5 py-2 rounded-xl text-sm font-semibold disabled:opacity-40 flex items-center gap-2"
           >
             {isLoading ? (
               <>
@@ -69,27 +56,20 @@ export default function QueryInput({ lang, query, setQuery, onSubmit, isLoading 
                 {tr.loading}
               </>
             ) : (
-              <>
-                {tr.submit}
-              </>
+              tr.submit
             )}
           </button>
         </div>
       </div>
 
-      {/* Quick chips */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 chip-stagger">
         {QUICK_CHIPS[lang].map((chip) => (
           <button
             key={chip}
             onClick={() => { setQuery(chip); onSubmit(chip); }}
             disabled={isLoading}
-            className="text-xs px-3 py-1.5 rounded-full border transition-all duration-150 disabled:opacity-40 hover:scale-[1.03]"
-            style={{
-              borderColor: 'var(--border)',
-              background: 'var(--bg-card)',
-              color: 'var(--text-muted)',
-            }}
+            className="text-xs px-3 py-1.5 rounded-full glass-panel transition-all duration-150 disabled:opacity-40 hover:scale-[1.03]"
+            style={{ color: 'var(--text-muted)' }}
           >
             {chip}
           </button>

@@ -6,6 +6,8 @@ import QueryInput from '@/components/QueryInput';
 import ChatThread from '@/components/ChatThread';
 import Sidebar from '@/components/Sidebar';
 import SkeletonCard from '@/components/SkeletonCard';
+import AtmosphereBackground from '@/components/ui/AtmosphereBackground';
+import GlassDisc from '@/components/ui/GlassDisc';
 import { t } from '@/lib/translations';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,7 +19,7 @@ function AppPageContent() {
   const params = useSearchParams();
   const { theme, toggle } = useTheme();
   const { user } = useAuth();
-  const { sendMessage, newSession, activeSessionId } = useChat();
+  const { sendMessage, newSession, activeSessionId, messages } = useChat();
 
   const [query, setQuery] = useState('');
   const [lang, setLang] = useState<Language>('en');
@@ -51,20 +53,24 @@ function AppPageContent() {
   const tr = t(lang);
 
   return (
-    <div className="h-screen flex overflow-hidden" style={{ background: 'var(--bg)' }}>
+    <div className="h-screen flex overflow-hidden relative">
+      <AtmosphereBackground variant="console" />
+
       {/* ── Sidebar ── */}
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="relative z-20">
+        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      </div>
 
       {/* ── Main column ── */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10">
         {/* ── App Header ── */}
         <header className="app-header flex-shrink-0 z-20 px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             {/* Sidebar collapse/expand toggle */}
             <button
               onClick={() => setSidebarOpen((v) => !v)}
-              className="w-8 h-8 rounded-xl flex items-center justify-center border transition-all hover:opacity-80"
-              style={{ borderColor: 'var(--border)', background: 'var(--bg-card2)', color: 'var(--text-muted)' }}
+              className="w-8 h-8 rounded-xl flex items-center justify-center glass-panel transition-all hover:opacity-80"
+              style={{ color: 'var(--text-muted)' }}
               title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
             >
               {sidebarOpen ? (
@@ -96,8 +102,8 @@ function AppPageContent() {
 
           {/* Trust badge */}
           <div
-            className="hidden sm:block text-[11px] px-3 py-1 rounded-full border"
-            style={{ color: 'var(--text-muted)', borderColor: 'var(--border)' }}
+            className="hidden sm:block text-[11px] px-3 py-1 rounded-full glass-panel"
+            style={{ color: 'var(--text-muted)' }}
           >
             {tr.trust_banner}
           </div>
@@ -106,8 +112,8 @@ function AppPageContent() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => router.push('/explorer')}
-              className="hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all hover:opacity-80"
-              style={{ borderColor: 'var(--border)', background: 'var(--bg-card2)', color: 'var(--text-muted)' }}
+              className="hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-xl glass-panel text-xs font-medium transition-all hover:opacity-80"
+              style={{ color: 'var(--text-muted)' }}
               title="Wallet Explorer"
             >
               🔍 Explorer
@@ -115,8 +121,8 @@ function AppPageContent() {
             {user && (
               <button
                 onClick={() => router.push('/dashboard')}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all hover:opacity-80"
-                style={{ borderColor: 'var(--border)', background: 'var(--bg-card2)', color: 'var(--text-muted)' }}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl glass-panel text-xs font-medium transition-all hover:opacity-80"
+                style={{ color: 'var(--text-muted)' }}
               >
                 <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
                   style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
@@ -127,7 +133,7 @@ function AppPageContent() {
             )}
 
             {/* Lang switcher */}
-            <div className="flex items-center gap-1 rounded-xl border p-1" style={{ borderColor: 'var(--border)', background: 'var(--bg-card2)' }}>
+            <div className="flex items-center gap-1 rounded-xl glass-panel p-1">
               {langs.map((l) => (
                 <button key={l} onClick={() => setLang(l)}
                   className="px-2 py-0.5 rounded-lg text-xs font-medium transition-all"
@@ -139,8 +145,8 @@ function AppPageContent() {
 
             {/* Theme toggle */}
             <button onClick={toggle}
-              className="w-8 h-8 rounded-xl flex items-center justify-center border transition-all hover:scale-105"
-              style={{ borderColor: 'var(--border)', background: 'var(--bg-card2)', color: 'var(--text-muted)' }}
+              className="w-8 h-8 rounded-xl flex items-center justify-center glass-panel transition-all hover:scale-105"
+              style={{ color: 'var(--text-muted)' }}
               title="Toggle theme">
               {theme === 'dark' ? '☀️' : '🌙'}
             </button>
@@ -148,18 +154,19 @@ function AppPageContent() {
         </header>
 
         {/* ── Chat area ── */}
-        <main className="flex-1 flex flex-col min-h-0">
+        <main className="flex-1 flex flex-col min-h-0 relative">
+          <GlassDisc visible={messages.length === 0 && !isLoading} />
+
           {/* Message thread — scrolls independently */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto relative">
             <div className="w-full max-w-2xl mx-auto px-4 pb-4">
-              <ChatThread lang={lang} />
+              <ChatThread lang={lang} onHintClick={handleSubmit} />
             </div>
           </div>
 
           {/* Sticky query input */}
           <div
-            className="sticky bottom-0 pb-4 pt-3"
-            style={{ background: 'linear-gradient(to top, var(--bg) 70%, transparent)' }}
+            className="sticky bottom-0 pb-4 pt-3 relative z-[2] input-fade-gradient"
           >
             <div className="w-full max-w-2xl mx-auto px-4">
               {/* Active session indicator */}

@@ -30,7 +30,7 @@ export default function TokenList({ tokens, limit = 10 }: Props) {
 
   if (!shown.length) {
     return (
-      <div className="rounded-xl p-4 border text-center text-xs" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+      <div className="rounded-xl p-4 glass-read text-center text-xs" style={{ color: 'var(--text-muted)' }}>
         No ERC-20 token holdings detected.
       </div>
     );
@@ -41,7 +41,7 @@ export default function TokenList({ tokens, limit = 10 }: Props) {
       <h3 className="text-xs font-semibold uppercase tracking-wider mb-2 px-1" style={{ color: 'var(--text-muted)' }}>
         Top tokens ({tokens.length} total)
       </h3>
-      <div className="rounded-xl border overflow-hidden" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+      <div className="rounded-xl glass-read overflow-hidden !shadow-none">
         {shown.map((t, i) => {
           const spec = CHAIN_BY_KEY[t.chain];
           return (

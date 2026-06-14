@@ -37,13 +37,7 @@ export default function PortfolioInsights({ report, premium }: Props) {
       </div>
 
       {premiumSummary && (
-        <div
-          className="rounded-2xl p-5 border"
-          style={{
-            background: 'linear-gradient(135deg, rgba(99,102,241,.12) 0%, rgba(139,92,246,.06) 100%)',
-            borderColor: 'rgba(99,102,241,.25)',
-          }}
-        >
+        <div className="rounded-2xl p-5 glass-read glass-panel-glow-purple">
           <p className="text-[10px] uppercase tracking-wider mb-1.5" style={{ color: '#a5b4fc' }}>
             Insight summary
           </p>
@@ -72,8 +66,7 @@ export default function PortfolioInsights({ report, premium }: Props) {
           return (
             <div
               key={i}
-              className="rounded-xl p-3 border flex items-start gap-2.5"
-              style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
+              className="rounded-xl p-3 glass-read-inner flex items-start gap-2.5"
             >
               <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: tone.dot }} />
               <div className="min-w-0">

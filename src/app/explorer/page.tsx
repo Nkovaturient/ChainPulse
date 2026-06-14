@@ -11,6 +11,9 @@ import WalletTracker from '@/components/explorer/WalletTracker';
 import TokenList from '@/components/explorer/TokenList';
 import TxTimeline from '@/components/explorer/TxTimeline';
 import ExplorerChat from '@/components/explorer/ExplorerChat';
+import AtmosphereBackground from '@/components/ui/AtmosphereBackground';
+import GlassDisc from '@/components/ui/GlassDisc';
+import GlassPanel from '@/components/ui/GlassPanel';
 import { CHAIN_COUNT, chainNamesBlurb } from '@/lib/explorer/chains';
 import { isPremiumTier } from '@/lib/tier';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -74,9 +77,11 @@ function ExplorerInner() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg)' }}>
+    <div className="min-h-screen flex flex-col relative">
+      <AtmosphereBackground variant="explorer" />
+
       {/* Header */}
-      <header className="app-header flex-shrink-0 px-4 py-3 flex items-center justify-between gap-4">
+      <header className="app-header flex-shrink-0 px-4 py-3 flex items-center justify-between gap-4 relative z-20">
         <div className="flex items-center gap-2">
           <button onClick={() => router.push('/')} className="flex items-center gap-1.5">
             <span className="text-xl">⛓</span>
@@ -92,8 +97,8 @@ function ExplorerInner() {
         <div className="flex items-center gap-2">
           {user && (
             <button onClick={() => router.push('/dashboard')}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all hover:opacity-80"
-              style={{ borderColor: 'var(--border)', background: 'var(--bg-card2)', color: 'var(--text-muted)' }}>
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl glass-panel text-xs font-medium transition-all hover:opacity-80"
+              style={{ color: 'var(--text-muted)' }}>
               <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
                 style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
                 {user.username[0].toUpperCase()}
@@ -102,21 +107,23 @@ function ExplorerInner() {
             </button>
           )}
           <button onClick={() => router.push('/app')}
-            className="px-3 py-1.5 rounded-xl text-xs border transition-all hover:opacity-80"
-            style={{ borderColor: 'var(--border)', background: 'var(--bg-card2)', color: 'var(--text-muted)' }}>
+            className="px-3 py-1.5 rounded-xl text-xs glass-panel transition-all hover:opacity-80"
+            style={{ color: 'var(--text-muted)' }}>
             Console
           </button>
           <button onClick={toggle}
-            className="w-8 h-8 rounded-xl flex items-center justify-center border transition-all hover:scale-105"
-            style={{ borderColor: 'var(--border)', background: 'var(--bg-card2)', color: 'var(--text-muted)' }}
+            className="w-8 h-8 rounded-xl flex items-center justify-center glass-panel transition-all hover:scale-105"
+            style={{ color: 'var(--text-muted)' }}
             title="Toggle theme">
             {theme === 'dark' ? '☀️' : '🌙'}
           </button>
         </div>
       </header>
 
-      <main className="flex-1 px-4 py-8">
-        <div className="max-w-5xl mx-auto flex flex-col lg:flex-row gap-6">
+      <main className="flex-1 px-4 py-8 relative z-10">
+        <GlassDisc visible={!address && !loading} />
+
+        <div className="max-w-5xl mx-auto flex flex-col lg:flex-row gap-6 relative z-[2]">
           <div className="flex-1 min-w-0 space-y-6">
           {/* Hero */}
           <div className="text-center">
@@ -182,13 +189,12 @@ function ExplorerInner() {
 
           {/* Empty state */}
           {!address && !loading && !error && (
-            <div className="rounded-2xl p-8 border text-center text-sm space-y-2"
-              style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+            <GlassPanel className="rounded-2xl p-8 text-center text-sm space-y-2">
               <p className="text-2xl mb-3">🔍</p>
               <p className="font-semibold" style={{ color: 'var(--text)' }}>How it works</p>
-              <p>Paste any EVM wallet address. We fetch its native + ERC-20 balances and recent transactions across {chainNamesBlurb()} — in parallel.</p>
-              <p>Then ask anything about it. The agent uses live on-chain tools to answer — no guessing, no hallucination.</p>
-            </div>
+              <p style={{ color: 'var(--text-muted)' }}>Paste any EVM wallet address. We fetch its native + ERC-20 balances and recent transactions across {chainNamesBlurb()} — in parallel.</p>
+              <p style={{ color: 'var(--text-muted)' }}>Then ask anything about it. The agent uses live on-chain tools to answer — no guessing, no hallucination.</p>
+            </GlassPanel>
           )}
           </div>
 
@@ -198,7 +204,7 @@ function ExplorerInner() {
         </div>
       </main>
 
-      <footer className="px-6 py-4 text-center text-[11px]" style={{ color: 'var(--text-muted)' }}>
+      <footer className="px-6 py-4 text-center text-[11px] relative z-10" style={{ color: 'var(--text-muted)' }}>
         Data from Etherscan V2 + CoinGecko · Read-only · No wallet connection
       </footer>
     </div>

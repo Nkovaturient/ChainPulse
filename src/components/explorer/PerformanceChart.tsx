@@ -26,8 +26,8 @@ function PerfTooltip({ active, payload }: { active?: boolean; payload?: Array<{ 
   const p = payload[0].payload;
   return (
     <div
-      className="rounded-lg px-3 py-2 text-xs border"
-      style={{ background: 'var(--bg-card2)', borderColor: 'var(--border)', color: 'var(--text)' }}
+      className="rounded-lg px-3 py-2 text-xs glass-read !shadow-none"
+      style={{ color: 'var(--text)' }}
     >
       <p className="font-semibold">{p.symbol}</p>
       <p style={{ color: p.change24h >= 0 ? UP : DOWN }}>
@@ -51,7 +51,7 @@ export default function PerformanceChart({ report }: Props) {
         What&apos;s moving
       </h2>
 
-      <div className="rounded-2xl p-5 border" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+      <div className="rounded-2xl p-5 glass-read">
         <div className="flex items-baseline justify-between mb-3 gap-2 flex-wrap">
           <div>
             <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Coin performance (24h)</h3>

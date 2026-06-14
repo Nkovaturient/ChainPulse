@@ -26,8 +26,8 @@ function SliceTooltip({ active, payload }: { active?: boolean; payload?: Array<{
   const s = payload[0].payload;
   return (
     <div
-      className="rounded-lg px-3 py-2 text-xs border"
-      style={{ background: 'var(--bg-card2)', borderColor: 'var(--border)', color: 'var(--text)' }}
+      className="rounded-lg px-3 py-2 text-xs glass-read !shadow-none"
+      style={{ color: 'var(--text)' }}
     >
       <p className="font-semibold">{s.label}</p>
       <p style={{ color: 'var(--text-muted)' }}>
@@ -50,7 +50,7 @@ function Donut({
 }) {
   if (!slices.length) {
     return (
-      <div className="rounded-2xl p-5 border" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+      <div className="rounded-2xl p-5 border glass-read">
         <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text)' }}>{title}</h3>
         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>No priced holdings to chart.</p>
       </div>
@@ -58,7 +58,7 @@ function Donut({
   }
 
   return (
-    <div className="rounded-2xl p-5 border" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+    <div className="rounded-2xl p-5 border glass-read">
       <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{title}</h3>
       <p className="text-[11px] mb-3" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>
       <div className="flex items-center gap-4 flex-col sm:flex-row">

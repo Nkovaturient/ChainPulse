@@ -20,12 +20,8 @@ export default function MessageBubble({ message, lang }: MessageBubbleProps) {
     return (
       <div className="flex justify-end">
         <div
-          className="max-w-[80%] px-4 py-2.5 rounded-2xl rounded-tr-sm text-sm leading-relaxed"
-          style={{
-            background: 'linear-gradient(135deg,rgba(99,102,241,.2),rgba(139,92,246,.15))',
-            border: '1px solid rgba(99,102,241,.3)',
-            color: 'var(--text)',
-          }}
+          className="max-w-[80%] px-4 py-2.5 rounded-2xl rounded-tr-sm text-sm leading-relaxed glass-panel glass-panel-glow-purple"
+          style={{ color: 'var(--text)' }}
         >
           {message.text}
         </div>
@@ -56,10 +52,7 @@ export default function MessageBubble({ message, lang }: MessageBubbleProps) {
         <div className="flex-1 min-w-0 space-y-3">
           {isPending ? (
             // Typing indicator
-            <div
-              className="flex items-center gap-1.5 px-4 py-3 rounded-2xl rounded-tl-sm"
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
-            >
+            <div className="flex items-center gap-1.5 px-4 py-3 rounded-2xl rounded-tl-sm glass-read">
               <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '0ms' }} />
               <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '150ms' }} />
               <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -68,15 +61,12 @@ export default function MessageBubble({ message, lang }: MessageBubbleProps) {
             <>
               {/* Summary text bubble — rendered as markdown */}
               {message.text && (
-                <div
-                  className="px-4 py-3 rounded-2xl rounded-tl-sm"
-                  style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
-                >
+                <div className="px-4 py-3.5 rounded-2xl rounded-tl-sm glass-read">
                   <MarkdownBody>{message.text}</MarkdownBody>
 
                   {/* Feedback bar */}
                   {canFeedback && (
-                    <div className="mt-2 pt-2 flex items-center gap-1" style={{ borderTop: '1px solid var(--border)' }}>
+                    <div className="mt-2 pt-2 flex items-center gap-1 border-t border-[var(--glass-border)]">
                       <FeedbackButton
                         active={message.feedback === 'up'}
                         onClick={() => handleFeedback('up')}
@@ -87,7 +77,7 @@ export default function MessageBubble({ message, lang }: MessageBubbleProps) {
                         onClick={() => handleFeedback('down')}
                         kind="down"
                       />
-                      <span className="ml-auto text-[10px]" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>
+                      <span className="ml-auto text-[11px]" style={{ color: 'var(--text-muted-read)' }}>
                         {message.feedback === 'up'
                           ? 'Thanks — helps us improve'
                           : message.feedback === 'down'

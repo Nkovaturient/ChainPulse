@@ -22,8 +22,8 @@ export default function PriceCard({ data, lang }: Props) {
           <h3 className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{tr.price_card_title}</h3>
         </div>
         <a href="https://www.coingecko.com" target="_blank" rel="noreferrer"
-          className="text-[11px] font-medium px-2 py-0.5 rounded-full border transition-colors hover:opacity-80"
-          style={{ color: 'var(--text-muted)', borderColor: 'var(--border)' }}>
+          className="text-[11px] font-medium px-2 py-0.5 rounded-full glass-read-inner transition-colors hover:opacity-80"
+          style={{ color: 'var(--text-muted)' }}>
           CoinGecko ↗
         </a>
       </div>
@@ -36,8 +36,7 @@ export default function PriceCard({ data, lang }: Props) {
           return (
             <div
               key={coin.id}
-              className="flex items-center gap-4 p-3 rounded-xl transition-all hover:scale-[1.01]"
-              style={{ background: 'var(--bg-card2)' }}
+              className="flex items-center gap-4 p-3 rounded-xl transition-all hover:scale-[1.01] glass-read-inner"
             >
               {/* Left: coin info */}
               <div className="flex-1 min-w-0">

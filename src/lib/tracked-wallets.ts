@@ -77,3 +77,42 @@ export async function removeTrackedWallet(
   if (deleted.count === 0) return { error: 'Not found.', status: 404 };
   return { ok: true };
 }
+
+const LABEL_MAX = 32;
+
+function normalizeLabel(raw: string): string | null {
+  const trimmed = raw.trim().replace(/\s+/g, ' ');
+  if (!trimmed) return null;
+  if (trimmed.length > LABEL_MAX) return trimmed.slice(0, LABEL_MAX);
+  return trimmed;
+}
+
+export async function updateTrackedWalletLabel(
+  userId: string,
+  id: string,
+  rawLabel: string,
+): Promise<{ wallet: TrackedWalletRow } | { error: string; status: number }> {
+  const label = normalizeLabel(rawLabel);
+  if (rawLabel.trim() && !label) {
+    return { error: 'Invalid name.', status: 400 };
+  }
+
+  const existing = await prisma.trackedWallet.findFirst({
+    where: { id, userId },
+  });
+  if (!existing) return { error: 'Not found.', status: 404 };
+
+  const row = await prisma.trackedWallet.update({
+    where: { id },
+    data: { label },
+  });
+
+  return {
+    wallet: {
+      id: row.id,
+      address: row.address,
+      label: row.label,
+      created_at: row.createdAt.toISOString(),
+    },
+  };
+}

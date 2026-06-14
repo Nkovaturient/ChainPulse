@@ -20,8 +20,8 @@ export default function NewsCard({ data, lang }: Props) {
           </div>
           <h3 className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{tr.news_card_title}</h3>
         </div>
-        <span className="text-[11px] px-2 py-0.5 rounded-full border"
-          style={{ color: 'var(--text-muted)', borderColor: 'var(--border)' }}>RSS</span>
+        <span className="text-[11px] px-2 py-0.5 rounded-full glass-read-inner"
+          style={{ color: 'var(--text-muted)' }}>RSS</span>
       </div>
 
       <div className="space-y-1">
@@ -33,8 +33,7 @@ export default function NewsCard({ data, lang }: Props) {
               href={n.link}
               target="_blank"
               rel="noreferrer"
-              className="flex items-start gap-3 p-3 rounded-xl transition-all hover:scale-[1.01] group block"
-              style={{ background: 'var(--bg-card2)' }}
+              className="flex items-start gap-3 p-3 rounded-xl transition-all hover:scale-[1.01] group block glass-read-inner"
             >
               <div className="flex-1 min-w-0">
                 <p

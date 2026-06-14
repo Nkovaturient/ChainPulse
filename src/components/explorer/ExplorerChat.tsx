@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import MarkdownBody from '@/components/MarkdownBody';
+import GlassPanel from '@/components/ui/GlassPanel';
 import type { Language } from '@/types';
 
 interface ChatTurn {
@@ -34,7 +35,6 @@ export default function ExplorerChat({ address, lang }: Props) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [turns]);
 
-  // Reset history when the address changes
   useEffect(() => {
     setTurns([]);
   }, [address]);
@@ -49,7 +49,6 @@ export default function ExplorerChat({ address, lang }: Props) {
     setBusy(true);
 
     try {
-      // Send last 4 turns of text-only history
       const history = turns.slice(-4).map((t) => ({ role: t.role, text: t.text }));
       const res = await fetch('/api/explorer/query', {
         method: 'POST',
@@ -80,39 +79,30 @@ export default function ExplorerChat({ address, lang }: Props) {
   };
 
   return (
-    <div className="rounded-2xl border overflow-hidden flex flex-col"
-      style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+    <GlassPanel className="rounded-2xl overflow-hidden flex flex-col !p-0">
 
-      {/* Header */}
-      <div className="px-4 py-3 flex items-center gap-2"
-        style={{ borderBottom: '1px solid var(--border)' }}>
-        <div className="w-6 h-6 rounded-lg flex items-center justify-center text-white text-xs"
-          style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>⛓</div>
-        <span className="text-xs font-semibold" style={{ color: 'var(--text)' }}>Ask about this wallet</span>
-        <span className="ml-auto text-[10px] font-mono" style={{ color: 'var(--text-muted)' }}>
+      <div className="px-4 py-3 flex items-center gap-2 border-b border-[var(--glass-border)]">
+        <div className="w-6 h-6 rounded-lg flex items-center justify-center text-white text-xs glass-cta !p-0">⛓</div>
+        <span className="text-xs font-semibold" style={{ color: 'var(--text-read)' }}>Ask about this wallet</span>
+        <span className="ml-auto text-[10px] font-mono" style={{ color: 'var(--text-muted-read)' }}>
           Tools: native balance · txns · transfers
         </span>
       </div>
 
-      {/* Turns */}
       <div className="px-4 py-4 space-y-3 max-h-[400px] overflow-y-auto min-h-[120px]">
         {turns.length === 0 && (
           <div className="space-y-2">
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-xs" style={{ color: 'var(--text-muted-read)' }}>
               Try one of these:
             </p>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1.5 chip-stagger">
               {SUGGESTIONS.map((s) => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => void send(s)}
-                  className="text-[11px] px-2.5 py-1.5 rounded-lg border transition-all hover:opacity-70"
-                  style={{
-                    borderColor: 'var(--border)',
-                    background: 'var(--bg-card2)',
-                    color: 'var(--text-muted)',
-                  }}
+                  className="text-[11px] px-2.5 py-1.5 rounded-lg glass-read-inner transition-all hover:opacity-80"
+                  style={{ color: 'var(--text-read)' }}
                 >
                   {s}
                 </button>
@@ -124,27 +114,21 @@ export default function ExplorerChat({ address, lang }: Props) {
         {turns.map((t) =>
           t.role === 'user' ? (
             <div key={t.id} className="flex justify-end">
-              <div className="max-w-[80%] px-3 py-2 rounded-xl rounded-tr-sm text-xs"
-                style={{
-                  background: 'linear-gradient(135deg,rgba(99,102,241,.2),rgba(139,92,246,.15))',
-                  border: '1px solid rgba(99,102,241,.3)',
-                  color: 'var(--text)',
-                }}>
+              <div className="max-w-[80%] px-3 py-2 rounded-xl rounded-tr-sm text-xs glass-read-inner glass-panel-glow-purple"
+                style={{ color: 'var(--text-read)' }}>
                 {t.text}
               </div>
             </div>
           ) : (
             <div key={t.id} className="flex justify-start">
               {t.pending ? (
-                <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl rounded-tl-sm"
-                  style={{ background: 'var(--bg-card2)', border: '1px solid var(--border)' }}>
+                <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl rounded-tl-sm glass-read">
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '0ms' }} />
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '150ms' }} />
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
               ) : (
-                <div className="max-w-full px-3 py-2 rounded-xl rounded-tl-sm text-xs"
-                  style={{ background: 'var(--bg-card2)', border: '1px solid var(--border)' }}>
+                <div className="max-w-full px-3 py-2.5 rounded-xl rounded-tl-sm text-xs glass-read">
                   <MarkdownBody className="text-xs">{t.text}</MarkdownBody>
                 </div>
               )}
@@ -154,8 +138,7 @@ export default function ExplorerChat({ address, lang }: Props) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <form onSubmit={handleSubmit} className="p-3" style={{ borderTop: '1px solid var(--border)' }}>
+      <form onSubmit={handleSubmit} className="p-3 border-t border-[var(--glass-border)]">
         <div className="flex gap-2">
           <input
             type="text"
@@ -163,25 +146,18 @@ export default function ExplorerChat({ address, lang }: Props) {
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask anything about this wallet…"
             disabled={busy}
-            className="flex-1 px-3 py-2 rounded-xl text-sm outline-none transition-all"
-            style={{
-              background: 'var(--bg-card2)',
-              border: '1px solid var(--border)',
-              color: 'var(--text)',
-            }}
-            onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(99,102,241,.5)')}
-            onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+            className="flex-1 px-3 py-2 rounded-xl text-sm outline-none glass-read-inner"
+            style={{ color: 'var(--text-read)' }}
           />
           <button
             type="submit"
             disabled={busy || !input.trim()}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all disabled:opacity-40"
-            style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
+            className="px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all disabled:opacity-40 glass-cta"
           >
             {busy ? '…' : 'Ask'}
           </button>
         </div>
       </form>
-    </div>
+    </GlassPanel>
   );
 }

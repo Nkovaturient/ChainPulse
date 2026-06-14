@@ -22,13 +22,13 @@ export default function WhaleCard({ data, lang }: Props) {
         </div>
         <div className="flex gap-2">
           <a href="https://etherscan.io" target="_blank" rel="noreferrer"
-            className="text-[11px] font-medium px-2 py-0.5 rounded-full border transition-colors hover:opacity-80"
-            style={{ color: 'var(--text-muted)', borderColor: 'var(--border)' }}>
+            className="text-[11px] font-medium px-2 py-0.5 rounded-full glass-read-inner transition-colors hover:opacity-80"
+            style={{ color: 'var(--text-muted)' }}>
             Etherscan ↗
           </a>
           <a href="https://solscan.io" target="_blank" rel="noreferrer"
-            className="text-[11px] font-medium px-2 py-0.5 rounded-full border transition-colors hover:opacity-80"
-            style={{ color: 'var(--text-muted)', borderColor: 'var(--border)' }}>
+            className="text-[11px] font-medium px-2 py-0.5 rounded-full glass-read-inner transition-colors hover:opacity-80"
+            style={{ color: 'var(--text-muted)' }}>
             Solscan ↗
           </a>
         </div>
@@ -38,8 +38,7 @@ export default function WhaleCard({ data, lang }: Props) {
         {data.map((tx) => (
           <div
             key={tx.hash + tx.chain}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs transition-all hover:scale-[1.005]"
-            style={{ background: 'var(--bg-card2)' }}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs transition-all hover:scale-[1.005] glass-read-inner"
           >
             {/* Chain badge */}
             <span

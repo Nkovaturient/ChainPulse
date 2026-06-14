@@ -10,7 +10,9 @@
     "db:migrate": "npx prisma migrate dev --config prisma.config.ts",
     "db:deploy": "npx prisma migrate deploy --config prisma.config.ts",
     "db:studio": "npx prisma studio --config prisma.config.ts",
-    "lint": "eslint"
+    "lint": "eslint",
+    "optimize:bg": "node scripts/optimize-bg.mjs",
+    "optimize:logo": "node scripts/optimize-bg.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.1",
@@ -23,6 +25,7 @@
     "clsx": "^2.1.1",
     "jose": "^6.2.3",
     "lucide-react": "^1.14.0",
+    "motion": "^12.40.0",
     "next": "16.2.6",
     "pg": "^8.20.0",
     "react": "19.2.4",
@@ -42,6 +45,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "prisma": "^7.8.0",
+    "sharp": "^0.35.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

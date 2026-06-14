@@ -7,9 +7,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { isPremiumTier } from '@/lib/tier';
 import type { TrackedWallet, UserTier } from '@/types';
 
+const LABEL_MAX = 32;
+
 interface Props {
   currentAddress?: string | null;
   onInspect: (address: string) => void;
+}
+
+interface NamingTarget {
+  id: string;
+  address: string;
+  label: string | null;
 }
 
 export default function WalletTracker({ currentAddress, onInspect }: Props) {
@@ -20,6 +28,9 @@ export default function WalletTracker({ currentAddress, onInspect }: Props) {
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [naming, setNaming] = useState<NamingTarget | null>(null);
+  const [nameInput, setNameInput] = useState('');
+  const [nameError, setNameError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -97,6 +108,54 @@ export default function WalletTracker({ currentAddress, onInspect }: Props) {
     }
   };
 
+  const openNaming = (w: TrackedWallet) => {
+    setNaming({ id: w.id, address: w.address, label: w.label });
+    setNameInput(w.label ?? '');
+    setNameError(null);
+  };
+
+  const closeNaming = () => {
+    setNaming(null);
+    setNameInput('');
+    setNameError(null);
+  };
+
+  const saveName = async () => {
+    if (!naming) return;
+    const trimmed = nameInput.trim();
+    if (!trimmed) {
+      setNameError('Enter a name to save.');
+      return;
+    }
+    if (trimmed.length > LABEL_MAX) {
+      setNameError(`Max ${LABEL_MAX} characters.`);
+      return;
+    }
+
+    setBusy(true);
+    setNameError(null);
+    try {
+      const res = await fetch(`/api/tracked-wallets/${naming.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: trimmed }),
+      });
+      const data = (await res.json()) as { wallet?: TrackedWallet; error?: string };
+      if (!res.ok) {
+        setNameError(data.error ?? 'Could not save name.');
+        return;
+      }
+      if (data.wallet) {
+        setWallets((prev) => prev.map((w) => (w.id === data.wallet!.id ? data.wallet! : w)));
+      }
+      closeNaming();
+    } catch {
+      setNameError('Network error.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const normalizedCurrent = currentAddress?.toLowerCase() ?? null;
   const isTracked = normalizedCurrent
     ? wallets.some((w) => w.address === normalizedCurrent)
@@ -105,21 +164,20 @@ export default function WalletTracker({ currentAddress, onInspect }: Props) {
 
   if (authLoading) {
     return (
-      <div className="rounded-2xl p-4 border animate-pulse h-32" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }} />
+      <div className="rounded-2xl p-4 glass-read animate-pulse h-32" />
     );
   }
 
   if (!user) {
     return (
-      <div className="rounded-2xl p-5 border text-sm" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
-        <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text)' }}>Watchlist</h3>
-        <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+      <div className="rounded-2xl p-5 glass-read text-sm">
+        <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text-read)' }}>Watchlist</h3>
+        <p className="text-xs mb-3" style={{ color: 'var(--text-muted-read)' }}>
           Sign in to track up to 3 wallets (100 on premium).
         </p>
         <Link
           href="/login"
-          className="inline-block text-xs font-semibold px-3 py-1.5 rounded-lg text-white"
-          style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
+          className="inline-block text-xs font-semibold px-3 py-1.5 rounded-lg text-white glass-cta"
         >
           Sign in
         </Link>
@@ -128,80 +186,156 @@ export default function WalletTracker({ currentAddress, onInspect }: Props) {
   }
 
   return (
-    <div className="rounded-2xl p-5 border space-y-3" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Watchlist</h3>
-          <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            {wallets.length}/{limit} · {tier}
-            {!isPremiumTier(tier) && (
-              <span className="ml-1" style={{ color: '#a5b4fc' }}>· premium: 100</span>
-            )}
-          </p>
+    <>
+      <div className="rounded-2xl p-5 glass-read space-y-3">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-semibold" style={{ color: 'var(--text-read)' }}>Watchlist</h3>
+            <p className="text-[11px]" style={{ color: 'var(--text-muted-read)' }}>
+              {wallets.length}/{limit} · {tier}
+              {!isPremiumTier(tier) && (
+                <span className="ml-1" style={{ color: '#a5b4fc' }}>· premium: 100</span>
+              )}
+            </p>
+          </div>
+          {normalizedCurrent && !isTracked && (
+            <button
+              type="button"
+              disabled={busy || atLimit}
+              onClick={() => void trackAddress(normalizedCurrent)}
+              className="text-[11px] font-semibold px-2.5 py-1 rounded-lg text-white disabled:opacity-40 glass-cta"
+            >
+              Track this
+            </button>
+          )}
         </div>
-        {normalizedCurrent && !isTracked && (
-          <button
-            type="button"
-            disabled={busy || atLimit}
-            onClick={() => void trackAddress(normalizedCurrent)}
-            className="text-[11px] font-semibold px-2.5 py-1 rounded-lg text-white disabled:opacity-40"
-            style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
-          >
-            Track this
-          </button>
+
+        {error && (
+          <p className="text-xs text-red-400">{error}</p>
+        )}
+
+        {loading ? (
+          <div className="space-y-2">
+            {[0, 1].map((i) => (
+              <div key={i} className="h-9 rounded-lg animate-pulse glass-read-inner" />
+            ))}
+          </div>
+        ) : wallets.length === 0 ? (
+          <p className="text-xs" style={{ color: 'var(--text-muted-read)' }}>
+            No wallets tracked yet. Inspect & Track.
+          </p>
+        ) : (
+          <ul className="space-y-1.5 max-h-48 overflow-y-auto">
+            {wallets.map((w) => (
+              <li
+                key={w.id}
+                className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 group glass-read-inner"
+              >
+                <button
+                  type="button"
+                  onClick={() => onInspect(w.address)}
+                  className="flex-1 min-w-0 text-left"
+                >
+                  <span className="block text-xs font-semibold truncate" style={{ color: 'var(--text-read)' }}>
+                    {w.label ?? shortenAddress(w.address)}
+                  </span>
+                  <span
+                    className="block text-[10px] font-mono truncate"
+                    style={{ color: 'var(--text-muted-read)' }}
+                  >
+                    {w.label ? shortenAddress(w.address) : 'Tap to inspect'}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => openNaming(w)}
+                  className="text-[10px] px-2 py-0.5 rounded-md glass-cta shrink-0 disabled:opacity-40"
+                  title={w.label ? 'Rename wallet' : 'Name this wallet'}
+                >
+                  {w.label ? 'Rename' : 'Name it'}
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void remove(w.id)}
+                  className="text-[10px] px-1.5 py-0.5 rounded opacity-60 hover:opacity-100 disabled:opacity-30 shrink-0"
+                  style={{ color: 'var(--text-muted-read)' }}
+                  title="Remove"
+                >
+                  ✕
+                </button>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
 
-      {error && (
-        <p className="text-xs text-red-400">{error}</p>
-      )}
-
-      {loading ? (
-        <div className="space-y-2">
-          {[0, 1].map((i) => (
-            <div key={i} className="h-9 rounded-lg animate-pulse" style={{ background: 'var(--bg-card2)' }} />
-          ))}
-        </div>
-      ) : wallets.length === 0 ? (
-        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-          No wallets tracked yet. Inspect an address, then use Track this.
-        </p>
-      ) : (
-        <ul className="space-y-1.5 max-h-48 overflow-y-auto">
-          {wallets.map((w) => (
-            <li
-              key={w.id}
-              className="flex items-center gap-2 rounded-lg px-2 py-1.5 group"
-              style={{ background: 'var(--bg-card2)' }}
-            >
+      {naming && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(5,9,18,.65)' }}
+          onClick={closeNaming}
+          role="presentation"
+        >
+          <div
+            className="glass-read w-full max-w-sm rounded-2xl p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="name-wallet-title"
+          >
+            <h4 id="name-wallet-title" className="text-sm font-semibold mb-1" style={{ color: 'var(--text-read)' }}>
+              Name this wallet
+            </h4>
+            <p className="text-[11px] font-mono mb-4" style={{ color: 'var(--text-muted-read)' }}>
+              {shortenAddress(naming.address, 8, 6)}
+            </p>
+            <label className="block text-[11px] mb-1.5" style={{ color: 'var(--text-muted-read)' }}>
+              Your label (like ENS — only you see this)
+            </label>
+            <input
+              type="text"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void saveName();
+                if (e.key === 'Escape') closeNaming();
+              }}
+              maxLength={LABEL_MAX}
+              autoFocus
+              placeholder="e.g. Vitalik, Cold storage, DeFi whale"
+              className="w-full px-3 py-2.5 rounded-xl text-sm outline-none glass-read-inner mb-1"
+              style={{ color: 'var(--text-read)' }}
+            />
+            <p className="text-[10px] mb-3" style={{ color: 'var(--text-muted-read)' }}>
+              {nameInput.trim().length}/{LABEL_MAX}
+            </p>
+            {nameError && (
+              <p className="text-xs text-red-400 mb-3">{nameError}</p>
+            )}
+            <div className="flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() => onInspect(w.address)}
-                className="flex-1 min-w-0 text-left"
-              >
-                <span className="block text-xs font-medium truncate" style={{ color: 'var(--text)' }}>
-                  {w.label ?? shortenAddress(w.address)}
-                </span>
-                {w.label && (
-                  <span className="block text-[10px] font-mono truncate" style={{ color: 'var(--text-muted)' }}>
-                    {shortenAddress(w.address)}
-                  </span>
-                )}
-              </button>
-              <button
-                type="button"
+                onClick={closeNaming}
                 disabled={busy}
-                onClick={() => void remove(w.id)}
-                className="text-[10px] px-1.5 py-0.5 rounded opacity-60 hover:opacity-100 disabled:opacity-30"
-                style={{ color: 'var(--text-muted)' }}
-                title="Remove"
+                className="text-xs px-3 py-1.5 rounded-lg glass-read-inner disabled:opacity-40"
+                style={{ color: 'var(--text-muted-read)' }}
               >
-                ✕
+                Cancel
               </button>
-            </li>
-          ))}
-        </ul>
+              <button
+                type="button"
+                onClick={() => void saveName()}
+                disabled={busy || !nameInput.trim()}
+                className="text-xs px-4 py-1.5 rounded-lg text-white disabled:opacity-40 glass-cta"
+              >
+                {busy ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
-    </div>
+    </>
   );
 }

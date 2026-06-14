@@ -41,12 +41,10 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   };
 
   const panel = (
-    <div className="flex flex-col h-full w-72"
-      style={{ background: 'var(--bg-card)', borderRight: '1px solid var(--border)' }}>
+    <div className="flex flex-col h-full w-72 glass-sidebar">
 
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-4 flex-shrink-0"
-        style={{ borderBottom: '1px solid var(--border)' }}>
+      <div className="flex items-center justify-between px-4 py-4 flex-shrink-0 border-b border-[var(--glass-border)]">
         <div className="flex items-center gap-2">
           <button onClick={() => router.push('/')} className="flex items-center gap-1.5 group">
           <span className="text-base">⛓</span>
@@ -69,8 +67,8 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       <div className="px-3 py-3 flex-shrink-0">
         <button
           onClick={handleNew}
-          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-          style={{ border: '1px solid var(--border)', color: 'var(--text-muted)', background: 'var(--bg-card2)' }}
+          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all glass-panel hover:scale-[1.01]"
+          style={{ color: 'var(--text-muted)' }}
         >
           <span className="w-5 h-5 rounded-md flex items-center justify-center text-white flex-shrink-0 text-sm leading-none"
             style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
@@ -101,10 +99,10 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             tabIndex={0}
             onClick={() => handleOpen(s.id)}
             onKeyDown={(e) => e.key === 'Enter' && handleOpen(s.id)}
-            className="w-full px-3 py-2.5 rounded-xl transition-all group flex items-start gap-2 cursor-pointer select-none"
+            className="w-full px-3 py-2.5 rounded-xl transition-all group flex items-start gap-2 cursor-pointer select-none hover:border-[rgba(6,182,212,.3)]"
             style={{
               background: activeSessionId === s.id ? 'rgba(99,102,241,.12)' : 'transparent',
-              border: activeSessionId === s.id ? '1px solid rgba(99,102,241,.25)' : '1px solid transparent',
+              border: activeSessionId === s.id ? '1px solid rgba(6,182,212,.35)' : '1px solid transparent',
             }}
           >
             <span className="text-xs mt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>💬</span>
@@ -128,7 +126,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-3 flex-shrink-0" style={{ borderTop: '1px solid var(--border)' }}>
+      <div className="px-4 py-3 flex-shrink-0 border-t border-[var(--glass-border)]">
         <p className="text-[10px] text-center" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>
           Chats saved · No financial advice
         </p>

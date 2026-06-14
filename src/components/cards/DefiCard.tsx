@@ -21,8 +21,7 @@ export default function DefiCard({ data, lang }: Props) {
           <h3 className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{tr.defi_card_title}</h3>
         </div>
         <a href="https://defillama.com" target="_blank" rel="noreferrer"
-          className="text-[11px] font-medium px-2 py-0.5 rounded-full border hover:opacity-80 transition-opacity"
-          style={{ color: 'var(--text-muted)', borderColor: 'var(--border)' }}>
+          className="text-[11px] font-medium px-2 py-0.5 rounded-full glass-read-inner hover:opacity-80 transition-opacity">
           DefiLlama ↗
         </a>
       </div>
@@ -34,8 +33,7 @@ export default function DefiCard({ data, lang }: Props) {
           return (
             <div
               key={p.name}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all hover:scale-[1.005]"
-              style={{ background: 'var(--bg-card2)' }}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all hover:scale-[1.005] glass-read-inner"
             >
               {/* Rank */}
               <span className="text-[11px] w-5 text-right flex-shrink-0" style={{ color: 'var(--text-muted)' }}>

@@ -35,7 +35,7 @@ function fmtUsd(n: number | null): string {
 export default function TxTimeline({ activity }: Props) {
   if (!activity.length) {
     return (
-      <div className="rounded-xl p-4 border text-center text-xs" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+      <div className="rounded-xl p-4 glass-read text-center text-xs" style={{ color: 'var(--text-muted)' }}>
         No recent transactions found.
       </div>
     );
@@ -46,7 +46,7 @@ export default function TxTimeline({ activity }: Props) {
       <h3 className="text-xs font-semibold uppercase tracking-wider mb-2 px-1" style={{ color: 'var(--text-muted)' }}>
         Recent activity (cross-chain)
       </h3>
-      <div className="rounded-xl border overflow-hidden" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+      <div className="rounded-xl glass-read overflow-hidden !shadow-none">
         {activity.map((tx, i) => {
           const spec = CHAIN_BY_KEY[tx.chain];
           const isOut = tx.direction === 'out';

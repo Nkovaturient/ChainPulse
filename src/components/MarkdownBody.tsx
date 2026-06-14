@@ -10,56 +10,50 @@ interface Props {
 }
 
 const components: Components = {
-  // Paragraphs
   p: ({ children }) => (
-    <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
+    <p className="mb-2.5 last:mb-0 leading-[1.65]">{children}</p>
   ),
-  // Bullet + ordered lists
   ul: ({ children }) => (
-    <ul className="mb-2 last:mb-0 space-y-1 pl-4">{children}</ul>
+    <ul className="mb-2.5 last:mb-0 space-y-1.5 pl-4">{children}</ul>
   ),
   ol: ({ children }) => (
-    <ol className="mb-2 last:mb-0 space-y-1 pl-4 list-decimal">{children}</ol>
+    <ol className="mb-2.5 last:mb-0 space-y-1.5 pl-4 list-decimal">{children}</ol>
   ),
   li: ({ children }) => (
-    <li className="leading-relaxed flex gap-1.5 items-start">
-      <span className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0"
-        style={{ background: 'var(--accent)', opacity: 0.7 }} />
+    <li className="leading-[1.65] flex gap-1.5 items-start">
+      <span className="mt-2 w-1.5 h-1.5 rounded-full flex-shrink-0"
+        style={{ background: 'var(--accent3)', opacity: 0.9 }} />
       <span>{children}</span>
     </li>
   ),
-  // Bold
   strong: ({ children }) => (
-    <strong className="font-semibold" style={{ color: 'var(--text)' }}>{children}</strong>
+    <strong className="font-bold" style={{ color: 'var(--text-read)' }}>{children}</strong>
   ),
-  // Italic
   em: ({ children }) => (
-    <em className="italic opacity-80">{children}</em>
+    <em className="italic" style={{ color: 'var(--text-muted-read)' }}>{children}</em>
   ),
-  // No headers — strip them gracefully to bold text
-  h1: ({ children }) => <p className="font-semibold mb-1">{children}</p>,
-  h2: ({ children }) => <p className="font-semibold mb-1">{children}</p>,
-  h3: ({ children }) => <p className="font-semibold mb-1">{children}</p>,
-  // Blockquotes
+  h1: ({ children }) => <p className="font-bold mb-1.5" style={{ color: 'var(--text-read)' }}>{children}</p>,
+  h2: ({ children }) => <p className="font-bold mb-1.5" style={{ color: 'var(--text-read)' }}>{children}</p>,
+  h3: ({ children }) => <p className="font-bold mb-1.5" style={{ color: 'var(--text-read)' }}>{children}</p>,
   blockquote: ({ children }) => (
-    <div className="pl-3 border-l-2 border-indigo-400/40 opacity-70 mb-2">{children}</div>
+    <div className="pl-3 border-l-2 mb-2.5" style={{ borderColor: 'rgba(99,102,241,.45)', color: 'var(--text-muted-read)' }}>
+      {children}
+    </div>
   ),
-  // Inline code
   code: ({ children }) => (
     <code className="px-1 py-0.5 rounded text-xs font-mono"
-      style={{ background: 'rgba(99,102,241,.12)', color: 'var(--accent)' }}>
+      style={{ background: 'rgba(99,102,241,.18)', color: '#a5b4fc' }}>
       {children}
     </code>
   ),
-  // No block-level pre
   pre: ({ children }) => <div className="mb-2">{children}</div>,
 };
 
 export default function MarkdownBody({ children, className = '' }: Props) {
   return (
     <div
-      className={`text-sm leading-relaxed ${className}`}
-      style={{ color: 'var(--text)' }}
+      className={`text-[15px] leading-relaxed ${className}`}
+      style={{ color: 'var(--text-read)' }}
     >
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
         {children}

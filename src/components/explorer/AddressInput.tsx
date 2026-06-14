@@ -30,8 +30,8 @@ export default function AddressInput({ onSubmit, initial = '', busy }: Props) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto">
-      <div className="relative">
+    <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto relative z-[2]">
+      <div className="glass-input relative">
         <input
           type="text"
           value={value}
@@ -39,20 +39,13 @@ export default function AddressInput({ onSubmit, initial = '', busy }: Props) {
           placeholder="Paste a wallet address (0x… or ENS — EVM supported now)"
           spellCheck={false}
           autoComplete="off"
-          className="w-full px-5 py-4 pr-28 rounded-2xl text-sm font-mono outline-none transition-all"
-          style={{
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border)',
-            color: 'var(--text)',
-          }}
-          onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(99,102,241,.5)')}
-          onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+          className="w-full px-5 py-4 pr-28 text-sm font-mono outline-none bg-transparent"
+          style={{ color: 'var(--text)' }}
         />
         <button
           type="submit"
           disabled={kind !== 'evm' || busy}
-          className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-40"
-          style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
+          className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-40 glass-cta"
         >
           {busy ? '…' : 'Inspect →'}
         </button>

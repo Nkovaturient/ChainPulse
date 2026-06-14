@@ -16,6 +16,20 @@
   --radius:      1rem;
   --shadow:      0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
   --shadow-lg:   0 8px 40px rgba(0,0,0,.12);
+  /* Glass */
+  --glass-bg:        rgba(255,255,255,.72);
+  --glass-bg-strong: rgba(255,255,255,.85);
+  --glass-border:    rgba(6,182,212,.28);
+  --glass-blur:      16px;
+  --glow-teal:       0 0 24px rgba(6,182,212,.2);
+  --glow-purple:     0 0 20px rgba(99,102,241,.25);
+  --scrim-photo:     linear-gradient(165deg, rgba(248,250,252,.92) 0%, rgba(241,245,249,.88) 45%, rgba(236,254,255,.84) 100%);
+  /* Read surfaces (chat + data cards) */
+  --glass-read-bg:       rgba(255,255,255,.97);
+  --glass-read-bg-inner: rgba(248,250,252,.94);
+  --glass-read-border:   rgba(6,182,212,.22);
+  --text-read:           #0f172a;
+  --text-muted-read:     #475569;
 }
 
 [data-theme="dark"] {
@@ -23,10 +37,24 @@
   --bg-card:     rgba(255,255,255,.05);
   --bg-card2:    rgba(255,255,255,.03);
   --border:      rgba(255,255,255,.08);
-  --text:        #f0f4ff;
-  --text-muted:  #8892a4;
+  --text:        #f5f8ff;
+  --text-muted:  #9dabc0;
   --shadow:      0 1px 3px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.3);
   --shadow-lg:   0 8px 40px rgba(0,0,0,.5);
+  /* Glass */
+  --glass-bg:        rgba(255,255,255,.14);
+  --glass-bg-strong: rgba(8,14,28,.78);
+  --glass-border:    rgba(6,182,212,.35);
+  --glass-blur:      16px;
+  --glow-teal:       0 0 24px rgba(6,182,212,.25);
+  --glow-purple:     0 0 20px rgba(99,102,241,.3);
+  --scrim-photo:     linear-gradient(165deg, rgba(5,9,18,.82) 0%, rgba(4,14,28,.76) 40%, rgba(3,22,38,.7) 100%);
+  /* Read surfaces (chat + data cards) */
+  --glass-read-bg:       rgba(5,9,18,.97);
+  --glass-read-bg-inner: rgba(8,14,28,.92);
+  --glass-read-border:   rgba(6,182,212,.22);
+  --text-read:           #f5f8ff;
+  --text-muted-read:     #b8c5d9;
 }
 
 /* ─── Base ─── */
@@ -141,17 +169,16 @@ body {
   border-radius: 6px;
 }
 
-/* ─── Card base ─── */
+/* ─── Card base (agent data outputs) ─── */
 .card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: var(--glass-read-bg);
+  border: 1px solid var(--glass-read-border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: var(--text-read);
   transition: background .3s, border-color .3s, box-shadow .3s;
-}
-[data-theme="dark"] .card {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
 /* ─── Card entry animation ─── */
@@ -171,14 +198,197 @@ body {
 
 /* ─── App header ─── */
 .app-header {
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--glass-bg-strong);
+  border-bottom: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   transition: background .3s, border-color .3s;
 }
 [data-theme="dark"] .app-header {
-  background: rgba(7,12,22,.85);
+  background: rgba(5,9,18,.88);
+}
+[data-theme="dark"] .glass-sidebar {
+  background: rgba(5,9,18,.9);
+}
+
+/* ─── Glass utilities ─── */
+.glass-panel {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow), var(--glow-teal);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  transition: background .3s, border-color .3s, box-shadow .3s, transform .2s;
+}
+.glass-panel:hover {
+  border-color: rgba(6,182,212,.45);
+}
+.glass-panel-glow-purple {
+  box-shadow: var(--shadow), var(--glow-purple);
+}
+/* Darker read surface — agent bubbles, summaries, nested rows */
+.glass-read {
+  background: var(--glass-read-bg);
+  border: 1px solid var(--glass-read-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  color: var(--text-read);
+}
+.glass-read-inner {
+  background: var(--glass-read-bg-inner);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 0.75rem;
+  color: var(--text-read);
+}
+[data-theme="dark"] .glass-read-inner {
+  border-color: rgba(255,255,255,.1);
+}
+[data-theme="light"] .glass-read-inner {
+  border-color: rgba(15,23,42,.1);
+}
+.glass-input {
+  background: var(--glass-read-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow), var(--glow-teal);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: border-color .25s, box-shadow .25s;
+}
+.glass-input:focus-within {
+  border-color: rgba(6,182,212,.55);
+  box-shadow: var(--shadow-lg), 0 0 32px rgba(6,182,212,.2);
+}
+.glass-cta {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  transition: transform .2s, box-shadow .2s, opacity .2s;
+}
+.glass-cta:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--glow-purple);
+}
+.glass-sidebar {
+  background: var(--glass-bg-strong);
+  border-right: 1px solid var(--glass-border);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* ─── Atmosphere orbs ─── */
+.atmosphere-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+  animation: atmosphere-drift 14s ease-in-out infinite;
+}
+.atmosphere-orb-teal {
+  background: radial-gradient(circle, rgba(6,182,212,.45), rgba(6,182,212,.1));
+}
+.atmosphere-orb-purple {
+  background: radial-gradient(circle, rgba(99,102,241,.4), rgba(139,92,246,.1));
+}
+
+@keyframes atmosphere-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: .5; }
+  33%       { transform: translate(24px, -20px) scale(1.06); opacity: .65; }
+  66%       { transform: translate(-18px, 16px) scale(.94); opacity: .45; }
+}
+
+/* ─── Glass disc (empty state) ─── */
+.glass-disc {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  transform: translate(-50%, -50%);
+  width: min(520px, 85vw);
+  height: min(520px, 85vw);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(6,182,212,.12) 0%, rgba(99,102,241,.06) 45%, transparent 70%);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid rgba(6,182,212,.15);
+  pointer-events: none;
+  transition: opacity .4s ease, transform .4s ease;
+}
+.glass-disc-visible {
+  opacity: 1;
+  animation: glass-breathe 6s ease-in-out infinite;
+}
+.glass-disc-hidden {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(.92);
+  animation: none;
+}
+
+@keyframes glass-breathe {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: .85; }
+  50%       { transform: translate(-50%, -50%) scale(1.04); opacity: 1; }
+}
+
+/* ─── Chip stagger ─── */
+.chip-stagger > * {
+  animation: chip-in .45s ease both;
+}
+.chip-stagger > *:nth-child(1) { animation-delay: .05s; }
+.chip-stagger > *:nth-child(2) { animation-delay: .1s; }
+.chip-stagger > *:nth-child(3) { animation-delay: .15s; }
+.chip-stagger > *:nth-child(4) { animation-delay: .2s; }
+.chip-stagger > *:nth-child(5) { animation-delay: .25s; }
+.chip-stagger > *:nth-child(6) { animation-delay: .3s; }
+
+@keyframes chip-in {
+  from { opacity: 0; transform: translateY(8px) scale(.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ─── Splash intro ─── */
+@keyframes splash-logo-glow {
+  0%, 100% { filter: drop-shadow(0 0 20px rgba(6,182,212,.45)) drop-shadow(0 0 40px rgba(16,185,129,.2)); }
+  50%       { filter: drop-shadow(0 0 32px rgba(6,182,212,.7)) drop-shadow(0 0 60px rgba(16,185,129,.35)); }
+}
+.splash-logo-glow { animation: splash-logo-glow 2.1s ease-in-out 0s 5; }
+
+/* ─── Reduced motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  .atmosphere-orb,
+  .glass-disc-visible,
+  .glow-btn,
+  .chip-stagger > *,
+  .splash-logo-glow {
+    animation: none !important;
+  }
+  .glass-disc-visible {
+    opacity: .7;
+    transform: translate(-50%, -50%);
+  }
+  .card-enter {
+    animation: card-in .2s ease both;
+  }
+}
+
+/* ─── Read surface typography ─── */
+.glass-read,
+.glass-read-inner,
+.card {
+  font-weight: 450;
+}
+.glass-read strong,
+.card strong {
+  font-weight: 600;
+  color: var(--text-read);
+}
+
+/* ─── Input area fade ─── */
+.input-fade-gradient {
+  background: linear-gradient(to top, rgba(248,250,252,.85) 60%, transparent);
+}
+[data-theme="dark"] .input-fade-gradient {
+  background: linear-gradient(to top, rgba(7,12,22,.55) 60%, transparent);
 }
 
 /* ─── Scrollbar ─── */

@@ -1,6 +1,7 @@
 'use client';
 
 import { CHAIN_BY_KEY } from '@/lib/explorer/chains';
+import GlassPanel from '@/components/ui/GlassPanel';
 import { shortenAddress } from '@/lib/explorer/address';
 import type { WalletReport } from '@/lib/explorer/types';
 
@@ -29,13 +30,7 @@ export default function WalletOverview({ report }: Props) {
   return (
     <div className="space-y-4">
       {/* Net worth card */}
-      <div
-        className="rounded-2xl p-6 border"
-        style={{
-          background: 'linear-gradient(135deg, rgba(99,102,241,.12) 0%, rgba(139,92,246,.06) 100%)',
-          borderColor: 'rgba(99,102,241,.2)',
-        }}
-      >
+      <GlassPanel glow="purple" className="rounded-2xl p-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <p className="text-xs font-mono uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>
@@ -65,9 +60,7 @@ export default function WalletOverview({ report }: Props) {
             )}
           </div>
         </div>
-      </div>
-
-      {/* Per-chain breakdown */}
+      </GlassPanel>
       <div>
         <h3 className="text-xs font-semibold uppercase tracking-wider mb-2 px-1" style={{ color: 'var(--text-muted)' }}>
           Per-chain breakdown
@@ -79,10 +72,9 @@ export default function WalletOverview({ report }: Props) {
             return (
               <div
                 key={p.chain}
-                className="rounded-xl p-3 border transition-all"
+                className="rounded-xl p-3 glass-read-inner transition-all"
                 style={{
-                  background: 'var(--bg-card)',
-                  borderColor: active ? `${spec.color}40` : 'var(--border)',
+                  borderColor: active ? `${spec.color}40` : 'var(--glass-border)',
                   opacity: active ? 1 : 0.5,
                 }}
               >
@@ -112,14 +104,14 @@ export default function WalletOverview({ report }: Props) {
           <h3 className="text-xs font-semibold uppercase tracking-wider mb-2 px-1" style={{ color: 'var(--text-muted)' }}>
             Native holdings
           </h3>
-          <div className="rounded-xl border overflow-hidden" style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
+          <div className="rounded-xl glass-read overflow-hidden">
             {report.natives.filter((n) => n.amount > 0).map((n) => {
               const spec = CHAIN_BY_KEY[n.chain];
               return (
                 <div
                   key={n.chain}
                   className="px-4 py-3 flex items-center justify-between text-sm"
-                  style={{ borderBottom: '1px solid var(--border)' }}
+                  style={{ borderBottom: '1px solid var(--glass-border)' }}
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: `${spec.color}25`, color: spec.color }}>
