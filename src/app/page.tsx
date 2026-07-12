@@ -284,12 +284,12 @@ export default function LandingPage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="rounded-2xl border-2 border-indigo-400/45 bg-indigo-500/[.07] px-5 py-5 text-center md:text-left">
-                  <p className="text-xs font-bold uppercase tracking-wide text-indigo-200/90 mb-1">No upfront paywalls</p>
+                  <p className="text-xs font-bold uppercase tracking-wide text-indigo-200/90 mb-1">No upfront subscription</p>
                   <p className="text-sm sm:text-base font-extrabold text-white leading-snug border-b-2 border-indigo-400/40 pb-3 inline-block">
-                    Skip the $4K–$5K/yr SaaS treadmill.
+                    Start free. Upgrade when you&apos;re ready.
                   </p>
                   <p className="mt-3 text-xs text-white/50 leading-relaxed">
-                    Explore intel without committing to heavyweight subscriptions first.
+                    Opt into Premium or Insider access whenever you like — no commitment, no auto-renewal.
                   </p>
                 </div>
                 <div className="rounded-2xl border-2 border-violet-400/45 bg-violet-500/[.07] px-5 py-5 text-center md:text-left">

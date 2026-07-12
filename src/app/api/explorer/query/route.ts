@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
+import { prisma } from '@/lib/db';
 import { isEvmAddress } from '@/lib/explorer/address';
 import { buildWalletReport } from '@/lib/explorer/wallet';
 import { runExplorerAgent, chainKeysFromQuery } from '@/lib/explorer/agent';
+import { computeEntitlements } from '@/lib/tier';
+import { checkAndConsumeQuota } from '@/lib/rate-limit';
 import type { Language } from '@/types';
 
 export const runtime = 'nodejs';
@@ -34,13 +37,26 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid query.' }, { status: 400 });
   }
 
+  // ── Rate-limit check ──────────────────────────────────────────────────────
+  const dbUser = await prisma.user.findUnique({
+    where: { id: user.sub },
+    select: { premiumExpiresAt: true, eliteExpiresAt: true },
+  });
+  const ent = computeEntitlements({
+    premiumExpiresAt: dbUser?.premiumExpiresAt?.toISOString() ?? null,
+    eliteExpiresAt: dbUser?.eliteExpiresAt?.toISOString() ?? null,
+  });
+  const quota = await checkAndConsumeQuota(user.sub, ent, 'explorer');
+  if (!quota.allowed) {
+    return NextResponse.json(
+      { error: 'Message limit reached. Upgrade to send more.', resetAt: quota.resetAt, limit: quota.limit },
+      { status: 429 },
+    );
+  }
+
   try {
-    // 1. Pull a fresh snapshot (cached 30s server-side via fetch revalidate)
-    //    If the query mentions a specific chain, only fetch that one for speed.
     const chains = chainKeysFromQuery(query);
     const snapshot = await buildWalletReport(address, chains ? { chains } : {});
-
-    // 2. Run the explorer agent with snapshot in system prompt + tools available
     const result = await runExplorerAgent(address, query, snapshot, history, language);
 
     return NextResponse.json({

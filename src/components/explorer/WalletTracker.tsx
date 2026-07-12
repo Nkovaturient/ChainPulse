@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { RefreshCw } from 'lucide-react';
 import { shortenAddress } from '@/lib/explorer/address';
 import { useAuth } from '@/contexts/AuthContext';
-import { isPremiumTier } from '@/lib/tier';
-import type { TrackedWallet, UserTier } from '@/types';
+import { usePlansModal } from '@/contexts/PlansModalContext';
+import type { TrackedWallet } from '@/types';
 
 const LABEL_MAX = 32;
 
@@ -22,9 +23,10 @@ interface NamingTarget {
 
 export default function WalletTracker({ currentAddress, onInspect }: Props) {
   const { user, loading: authLoading } = useAuth();
+  const { openPlansModal } = usePlansModal();
   const [wallets, setWallets] = useState<TrackedWallet[]>([]);
   const [limit, setLimit] = useState(3);
-  const [tier, setTier] = useState<UserTier>('free');
+  const [premiumActive, setPremiumActive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +43,7 @@ export default function WalletTracker({ currentAddress, onInspect }: Props) {
       const data = (await res.json()) as {
         wallets?: TrackedWallet[];
         limit?: number;
-        tier?: UserTier;
+        premiumActive?: boolean;
         error?: string;
       };
       if (!res.ok) {
@@ -50,7 +52,7 @@ export default function WalletTracker({ currentAddress, onInspect }: Props) {
       }
       setWallets(data.wallets ?? []);
       setLimit(data.limit ?? 3);
-      setTier(data.tier ?? user.tier ?? 'free');
+      setPremiumActive(data.premiumActive ?? false);
     } catch {
       setError('Network error.');
     } finally {
@@ -63,7 +65,7 @@ export default function WalletTracker({ currentAddress, onInspect }: Props) {
     else {
       setWallets([]);
       setLimit(3);
-      setTier('free');
+      setPremiumActive(false);
     }
   }, [user, load]);
 
@@ -79,7 +81,11 @@ export default function WalletTracker({ currentAddress, onInspect }: Props) {
       });
       const data = (await res.json()) as { wallet?: TrackedWallet; error?: string };
       if (!res.ok) {
-        setError(data.error ?? 'Could not add wallet.');
+        if (res.status === 403) {
+          openPlansModal('wallet_limit');
+        } else {
+          setError(data.error ?? 'Could not add wallet.');
+        }
         return;
       }
       await load();
@@ -163,9 +169,7 @@ export default function WalletTracker({ currentAddress, onInspect }: Props) {
   const atLimit = wallets.length >= limit;
 
   if (authLoading) {
-    return (
-      <div className="rounded-2xl p-4 glass-read animate-pulse h-32" />
-    );
+    return <div className="rounded-2xl p-4 glass-read animate-pulse h-32" />;
   }
 
   if (!user) {
@@ -173,7 +177,7 @@ export default function WalletTracker({ currentAddress, onInspect }: Props) {
       <div className="rounded-2xl p-5 glass-read text-sm">
         <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text-read)' }}>Watchlist</h3>
         <p className="text-xs mb-3" style={{ color: 'var(--text-muted-read)' }}>
-          Sign in to track up to 3 wallets (100 on premium).
+          Sign in to track up to 3 wallets (50 on Premium).
         </p>
         <Link
           href="/login"
@@ -192,17 +196,27 @@ export default function WalletTracker({ currentAddress, onInspect }: Props) {
           <div>
             <h3 className="text-sm font-semibold" style={{ color: 'var(--text-read)' }}>Watchlist</h3>
             <p className="text-[11px]" style={{ color: 'var(--text-muted-read)' }}>
-              {wallets.length}/{limit} · {tier}
-              {!isPremiumTier(tier) && (
-                <span className="ml-1" style={{ color: '#a5b4fc' }}>· premium: 100</span>
+              {wallets.length}/{limit}
+              {!premiumActive && (
+                <button
+                  type="button"
+                  onClick={() => openPlansModal('wallet_limit')}
+                  className="ml-1 underline"
+                  style={{ color: '#a5b4fc' }}
+                >
+                  · premium: 50
+                </button>
               )}
             </p>
           </div>
           {normalizedCurrent && !isTracked && (
             <button
               type="button"
-              disabled={busy || atLimit}
-              onClick={() => void trackAddress(normalizedCurrent)}
+              disabled={busy}
+              onClick={() => {
+                if (atLimit) { openPlansModal('wallet_limit'); return; }
+                void trackAddress(normalizedCurrent);
+              }}
               className="text-[11px] font-semibold px-2.5 py-1 rounded-lg text-white disabled:opacity-40 glass-cta"
             >
               Track this
@@ -210,9 +224,7 @@ export default function WalletTracker({ currentAddress, onInspect }: Props) {
           )}
         </div>
 
-        {error && (
-          <p className="text-xs text-red-400">{error}</p>
-        )}
+        {error && <p className="text-xs text-red-400">{error}</p>}
 
         {loading ? (
           <div className="space-y-2">
@@ -222,7 +234,7 @@ export default function WalletTracker({ currentAddress, onInspect }: Props) {
           </div>
         ) : wallets.length === 0 ? (
           <p className="text-xs" style={{ color: 'var(--text-muted-read)' }}>
-            No wallets tracked yet. Inspect & Track.
+            No wallets tracked yet. Inspect &amp; Track.
           </p>
         ) : (
           <ul className="space-y-1.5 max-h-48 overflow-y-auto">
@@ -249,6 +261,16 @@ export default function WalletTracker({ currentAddress, onInspect }: Props) {
                 <button
                   type="button"
                   disabled={busy}
+                  onClick={() => onInspect(w.address)}
+                  className="opacity-60 group-hover:opacity-100 w-5 h-5 rounded flex items-center justify-center transition-all flex-shrink-0 disabled:opacity-30"
+                  style={{ color: 'var(--text-muted-read)' }}
+                  title="Refresh wallet data"
+                >
+                  <RefreshCw size={11} />
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
                   onClick={() => openNaming(w)}
                   className="text-[10px] px-2 py-0.5 rounded-md glass-cta shrink-0 disabled:opacity-40"
                   title={w.label ? 'Rename wallet' : 'Name this wallet'}
@@ -259,7 +281,7 @@ export default function WalletTracker({ currentAddress, onInspect }: Props) {
                   type="button"
                   disabled={busy}
                   onClick={() => void remove(w.id)}
-                  className="text-[10px] px-1.5 py-0.5 rounded opacity-60 hover:opacity-100 disabled:opacity-30 shrink-0"
+                  className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded flex items-center justify-center transition-all flex-shrink-0 disabled:opacity-30 hover:text-red-400"
                   style={{ color: 'var(--text-muted-read)' }}
                   title="Remove"
                 >

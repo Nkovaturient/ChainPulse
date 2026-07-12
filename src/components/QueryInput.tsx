@@ -10,9 +10,10 @@ interface Props {
   setQuery: (q: string) => void;
   onSubmit: (q: string) => void;
   isLoading: boolean;
+  disabled?: boolean;
 }
 
-export default function QueryInput({ lang, query, setQuery, onSubmit, isLoading }: Props) {
+export default function QueryInput({ lang, query, setQuery, onSubmit, isLoading, disabled = false }: Props) {
   const tr = t(lang);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
@@ -40,14 +41,14 @@ export default function QueryInput({ lang, query, setQuery, onSubmit, isLoading 
           }}
           placeholder={tr.search_placeholder}
           rows={2}
-          disabled={isLoading}
+          disabled={isLoading || disabled}
           className="w-full px-4 pt-4 pb-2 text-sm bg-transparent border-none outline-none placeholder:opacity-40 leading-relaxed"
           style={{ color: 'var(--text)', fontFamily: 'inherit' }}
         />
         <div className="flex items-center justify-end px-3 pb-3">
           <button
             onClick={submit}
-            disabled={isLoading || !query.trim()}
+            disabled={isLoading || disabled || !query.trim()}
             className="glass-cta px-5 py-2 rounded-xl text-sm font-semibold disabled:opacity-40 flex items-center gap-2"
           >
             {isLoading ? (

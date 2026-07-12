@@ -29,12 +29,19 @@ export interface ChatSession {
   updatedAt: Date;
 }
 
+export interface QuotaState {
+  blocked: boolean;
+  resetAt: string | null;
+  limit: number | null;
+}
+
 interface ChatContextValue {
   sessions: ChatSession[];
   activeSessionId: string | null;
   messages: ChatMessage[];
   sessionsLoading: boolean;
   messagesLoading: boolean;
+  quota: QuotaState;
   /** Switch to (or create) a session and load its messages */
   openSession: (id: string) => Promise<void>;
   /** Create a fresh session and switch to it */
@@ -60,6 +67,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // <Sidebar> (loading spinner vs "No chats yet").
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
+  const [quota, setQuota] = useState<QuotaState>({ blocked: false, resetAt: null, limit: null });
   const pendingId = useRef(0);
 
   const reloadSessions = useCallback(async () => {
@@ -149,6 +157,21 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, language: lang, sessionId: sid }),
       });
+      if (res.status === 429) {
+        const e = (await res.json().catch(() => ({}))) as { error?: string; resetAt?: string; limit?: number };
+        setQuota({ blocked: true, resetAt: e.resetAt ?? null, limit: e.limit ?? null });
+        setMessages((prev) =>
+          prev
+            .filter((m) => m.id !== `${optimisticId}-pending`)
+            .concat({
+              id: `${optimisticId}-err`,
+              role: 'assistant' as const,
+              text: e.error ?? "You've reached your message limit. Upgrade to continue.",
+              createdAt: new Date(),
+            }),
+        );
+        return null;
+      }
       if (!res.ok) {
         const e = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(e.error || 'Request failed');
@@ -174,6 +197,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       if (data.sessionId && data.sessionId !== sid) {
         setActiveSessionId(data.sessionId);
       }
+
+      // Clear any previous quota block on success
+      setQuota({ blocked: false, resetAt: null, limit: null });
 
       // Refresh session list to pick up title update
       void reloadSessions();
@@ -222,6 +248,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       messages,
       sessionsLoading,
       messagesLoading,
+      quota,
       openSession,
       newSession,
       deleteSession,

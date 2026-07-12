@@ -69,14 +69,13 @@ export type UserRole =
   | 'just_exploring'
   | 'tech_savvy';
 
-export type UserTier = 'free' | 'premium';
-
 export interface User {
   id: string;
   email: string;
   username: string;
   role: UserRole;
-  tier: UserTier;
+  premiumExpiresAt: string | null;
+  eliteExpiresAt: string | null;
   created_at: string;
   last_login: string | null;
 }

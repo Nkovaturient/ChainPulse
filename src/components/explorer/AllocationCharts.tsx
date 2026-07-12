@@ -107,7 +107,7 @@ export default function AllocationCharts({ report }: Props) {
 
   return (
     <section className="space-y-3" id="allocation">
-      <h2 className="text-xs font-semibold uppercase tracking-wider px-1" style={{ color: 'var(--text-muted)' }}>
+      <h2 className="text-xs font-semibold uppercase tracking-wider px-1">
         Allocation
       </h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">

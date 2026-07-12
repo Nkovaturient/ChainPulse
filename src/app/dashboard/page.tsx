@@ -1,8 +1,11 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Zap, Shield, Star } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { usePlansModal } from '@/contexts/PlansModalContext';
 
 const ROLE_META: Record<string, { label: string; icon: string; color: string; bg: string }> = {
   student:         { label: 'Student',        icon: '🎓', color: '#a5b4fc', bg: 'rgba(99,102,241,.15)' },
@@ -20,10 +23,39 @@ const QUICK_ACTIONS = [
   { icon: '💎', label: 'Best staking yields',   query: 'Best staking yields' },
 ];
 
+interface BillingStatus {
+  premiumActive: boolean;
+  premiumExpiresAt: string | null;
+  eliteActive: boolean;
+  eliteExpiresAt: string | null;
+  quota: { used: number; limit: number | null; unlimited: boolean; remaining: number | null };
+}
+
+function formatExpiry(iso: string | null) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const { user, loading, logout } = useAuth();
   const { theme, toggle } = useTheme();
+  const { openPlansModal } = usePlansModal();
+  const [billing, setBilling] = useState<BillingStatus | null>(null);
+
+  useEffect(() => {
+    fetch('/api/billing/status')
+      .then((r) => r.json())
+      .then((d: BillingStatus) => setBilling(d))
+      .catch(() => {});
+  }, []);
+
+  // Show success toast if redirected back from Stripe
+  useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('checkout') === 'success') {
+      window.history.replaceState({}, '', '/dashboard');
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -34,6 +66,9 @@ export default function DashboardPage() {
   }
 
   const role = user?.role ? ROLE_META[user.role] : null;
+
+  const activePlan = billing?.eliteActive ? 'Elite' : billing?.premiumActive ? 'Premium' : 'Free';
+  const activePlanColor = billing?.eliteActive ? '#facc15' : billing?.premiumActive ? '#a5b4fc' : 'var(--text-muted)';
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg)' }}>
@@ -98,8 +133,62 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Your Plan card */}
+        <div
+          className="rounded-2xl p-5 border"
+          style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-bold" style={{ color: 'var(--text)' }}>Your Plan</h2>
+            <span
+              className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
+              style={{
+                background: billing?.eliteActive ? 'rgba(234,179,8,.12)' : billing?.premiumActive ? 'rgba(99,102,241,.15)' : 'rgba(100,116,139,.12)',
+                color: activePlanColor,
+              }}
+            >
+              {billing?.eliteActive ? <Zap size={11} /> : billing?.premiumActive ? <Shield size={11} /> : <Star size={11} />}
+              {activePlan}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+            {/* Premium row */}
+            <div className="rounded-xl p-3 border" style={{ background: 'var(--bg-card2)', borderColor: 'var(--border)' }}>
+              <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: '#a5b4fc' }}>Premium</p>
+              <p className="text-xs font-semibold" style={{ color: 'var(--text)' }}>
+                {billing?.premiumActive ? `Active · expires ${formatExpiry(billing.premiumExpiresAt)}` : 'Not active'}
+              </p>
+            </div>
+            {/* Elite row */}
+            <div className="rounded-xl p-3 border" style={{ background: 'var(--bg-card2)', borderColor: 'var(--border)' }}>
+              <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: '#facc15' }}>Elite</p>
+              <p className="text-xs font-semibold" style={{ color: 'var(--text)' }}>
+                {billing?.eliteActive ? `Active · expires ${formatExpiry(billing.eliteExpiresAt)}` : 'Not active'}
+              </p>
+            </div>
+            {/* Quota row */}
+            <div className="rounded-xl p-3 border" style={{ background: 'var(--bg-card2)', borderColor: 'var(--border)' }}>
+              <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: '#34d399' }}>Messages today</p>
+              <p className="text-xs font-semibold" style={{ color: 'var(--text)' }}>
+                {billing?.quota.unlimited
+                  ? 'Unlimited'
+                  : `${billing?.quota.used ?? 0} / ${billing?.quota.limit ?? 10}`}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => openPlansModal('manage')}
+            className="text-xs px-4 py-2 rounded-xl font-semibold transition-all hover:opacity-80"
+            style={{ background: 'rgba(99,102,241,.15)', color: '#a5b4fc' }}
+          >
+            View all plans & upgrade
+          </button>
+        </div>
+
         {/* Primary CTAs */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <button
             onClick={() => router.push('/app')}
             className="glow-btn rounded-2xl p-5 text-left flex items-center justify-between group transition-all duration-300"
@@ -117,10 +206,7 @@ export default function DashboardPage() {
           <button
             onClick={() => router.push('/explorer')}
             className="rounded-2xl p-5 text-left flex items-center justify-between group transition-all duration-300 border"
-            style={{
-              background: 'var(--bg-card)',
-              borderColor: 'var(--border)',
-            }}
+            style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
           >
             <div>
               <div className="text-base font-bold mb-1 flex items-center gap-1.5" style={{ color: 'var(--text)' }}>
@@ -128,6 +214,27 @@ export default function DashboardPage() {
               </div>
               <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
                 Multichain wallet lookup + Q&A
+              </div>
+            </div>
+            <span className="text-2xl group-hover:translate-x-1 transition-transform" style={{ color: 'var(--text-muted)' }}>→</span>
+          </button>
+          <button
+            onClick={() => router.push('/insider')}
+            className="rounded-2xl p-5 text-left flex items-center justify-between group transition-all duration-300 border"
+            style={{
+              background: billing?.eliteActive
+                ? 'linear-gradient(135deg, rgba(234,179,8,.1), rgba(161,161,170,.04))'
+                : 'var(--bg-card)',
+              borderColor: billing?.eliteActive ? 'rgba(234,179,8,.3)' : 'var(--border)',
+            }}
+          >
+            <div>
+              <div className="text-base font-bold mb-1 flex items-center gap-1.5" style={{ color: billing?.eliteActive ? '#facc15' : 'var(--text)' }}>
+                <Zap size={14} className={billing?.eliteActive ? 'text-yellow-400' : ''} />
+                Insider Bot
+              </div>
+              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                {billing?.eliteActive ? 'Smart-money alerts' : 'Elite members only'}
               </div>
             </div>
             <span className="text-2xl group-hover:translate-x-1 transition-transform" style={{ color: 'var(--text-muted)' }}>→</span>
@@ -153,7 +260,6 @@ export default function DashboardPage() {
             ))}
           </div>
         </div>
-
       </main>
     </div>
   );

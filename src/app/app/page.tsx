@@ -12,6 +12,7 @@ import { t } from '@/lib/translations';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { ChatProvider, useChat } from '@/contexts/ChatContext';
+import { usePlansModal } from '@/contexts/PlansModalContext';
 import type { Language } from '@/types';
 
 function AppPageContent() {
@@ -19,7 +20,8 @@ function AppPageContent() {
   const params = useSearchParams();
   const { theme, toggle } = useTheme();
   const { user } = useAuth();
-  const { sendMessage, newSession, activeSessionId, messages } = useChat();
+  const { sendMessage, newSession, activeSessionId, messages, quota } = useChat();
+  const { openPlansModal } = usePlansModal();
 
   const [query, setQuery] = useState('');
   const [lang, setLang] = useState<Language>('en');
@@ -118,6 +120,14 @@ function AppPageContent() {
             >
               🔍 Explorer
             </button>
+            <button
+              onClick={() => router.push('/insider')}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all hover:opacity-80"
+              style={{ background: 'rgba(234,179,8,.1)', color: '#facc15', border: '1px solid rgba(234,179,8,.2)' }}
+              title="Insider Bot"
+            >
+              ⚡ Insider
+            </button>
             {user && (
               <button
                 onClick={() => router.push('/dashboard')}
@@ -159,7 +169,7 @@ function AppPageContent() {
 
           {/* Message thread — scrolls independently */}
           <div className="flex-1 overflow-y-auto relative">
-            <div className="w-full max-w-2xl mx-auto px-4 pb-4">
+            <div className="w-full max-w-3xl mx-auto px-4 pb-4">
               <ChatThread lang={lang} onHintClick={handleSubmit} />
             </div>
           </div>
@@ -168,15 +178,36 @@ function AppPageContent() {
           <div
             className="sticky bottom-0 pb-4 pt-3 relative z-[2] input-fade-gradient"
           >
-            <div className="w-full max-w-2xl mx-auto px-4">
-              {/* Active session indicator */}
-              {activeSessionId && (
-                <div className="flex items-center gap-1.5 mb-2 px-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                    Session active · history on
+            <div className="w-full max-w-3xl mx-auto px-4">
+              {/* Quota banner */}
+              {quota.blocked ? (
+                <div className="mb-2 px-4 py-2.5 rounded-xl flex items-center justify-between gap-3 text-xs"
+                  style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.25)', color: '#fca5a5' }}>
+                  <span>
+                    Daily message limit reached.
+                    {quota.resetAt && (
+                      <span className="ml-1 opacity-70">
+                        Resets {new Date(quota.resetAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.
+                      </span>
+                    )}
                   </span>
+                  <button
+                    onClick={() => openPlansModal('console_limit')}
+                    className="flex-shrink-0 font-semibold px-3 py-1 rounded-lg text-white"
+                    style={{ background: '#6366f1' }}
+                  >
+                    Upgrade
+                  </button>
                 </div>
+              ) : (
+                activeSessionId && (
+                  <div className="flex items-center gap-1.5 mb-2 px-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                      Session active · history on
+                    </span>
+                  </div>
+                )
               )}
               <QueryInput
                 lang={lang}
@@ -184,6 +215,7 @@ function AppPageContent() {
                 setQuery={setQuery}
                 onSubmit={handleSubmit}
                 isLoading={isLoading}
+                disabled={quota.blocked}
               />
             </div>
           </div>

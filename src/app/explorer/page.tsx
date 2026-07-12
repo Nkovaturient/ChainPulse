@@ -15,7 +15,7 @@ import AtmosphereBackground from '@/components/ui/AtmosphereBackground';
 import GlassDisc from '@/components/ui/GlassDisc';
 import GlassPanel from '@/components/ui/GlassPanel';
 import { CHAIN_COUNT, chainNamesBlurb } from '@/lib/explorer/chains';
-import { isPremiumTier } from '@/lib/tier';
+import { computeEntitlements } from '@/lib/tier';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import type { WalletReport } from '@/lib/explorer/types';
@@ -33,10 +33,10 @@ function ExplorerInner() {
   const [error, setError] = useState<string | null>(null);
   const lang: Language = 'en';
 
-  const loadReport = useCallback(async (addr: string) => {
+  const loadReport = useCallback(async (addr: string, opts?: { keepVisible?: boolean }) => {
     setLoading(true);
     setError(null);
-    setReport(null);
+    if (!opts?.keepVisible) setReport(null);
     try {
       const res = await fetch(`/api/explorer/wallet/${addr}`);
       const data = (await res.json()) as WalletReport & { error?: string };
@@ -167,18 +167,23 @@ function ExplorerInner() {
                   ⚠ Partial data: {Object.keys(report.errors).length} chain(s) failed to load. Showing what we have.
                 </div>
               )}
-              <WalletOverview report={report} />
+              <WalletOverview
+                report={report}
+                onRefresh={() => address && void loadReport(address, { keepVisible: true })}
+                refreshing={loading}
+              />
               <AllocationCharts report={report} />
               <PerformanceChart report={report} />
-              <PortfolioInsights report={report} premium={isPremiumTier(user?.tier ?? 'free')} />
+              <PortfolioInsights report={report} premium={computeEntitlements(user).premiumActive} />
               <ExplorerChat address={report.address} lang={lang} />
               <TokenList tokens={report.tokens} limit={10} />
               <TxTimeline activity={report.recentActivity} />
 
               <div className="text-center pt-4">
                 <button
+                  type="button"
                   onClick={handleReset}
-                  className="text-xs underline hover:opacity-70"
+                  className="text-xs underline hover:opacity-70 transition-opacity"
                   style={{ color: 'var(--text-muted)' }}
                 >
                   Inspect a different address

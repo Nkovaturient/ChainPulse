@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { getInsights, getPremiumSummary, type InsightTone } from '@/lib/explorer/portfolio';
+import { usePlansModal } from '@/contexts/PlansModalContext';
 import type { WalletReport } from '@/lib/explorer/types';
 
 interface Props {
@@ -17,6 +18,7 @@ const TONE: Record<InsightTone, { dot: string; text: string }> = {
 };
 
 export default function PortfolioInsights({ report, premium }: Props) {
+  const { openPlansModal } = usePlansModal();
   const insights = useMemo(() => getInsights(report), [report]);
   const premiumSummary = useMemo(() => (premium ? getPremiumSummary(report) : null), [report, premium]);
 
@@ -29,10 +31,14 @@ export default function PortfolioInsights({ report, premium }: Props) {
           Portfolio insights
         </h2>
         {!premium && (
-          <span className="text-[10px] px-2 py-0.5 rounded-md font-medium"
-            style={{ background: 'rgba(99,102,241,.15)', color: '#a5b4fc' }}>
+          <button
+            type="button"
+            onClick={() => openPlansModal('insights')}
+            className="text-[10px] px-2 py-0.5 rounded-md font-medium transition-all hover:opacity-80"
+            style={{ background: 'rgba(99,102,241,.15)', color: '#a5b4fc' }}
+          >
             Upgrade for AI summary
-          </span>
+          </button>
         )}
       </div>
 

@@ -6,12 +6,15 @@ import { fetchDefiTVL, fetchStakingYields } from '@/lib/fetchers/defillama';
 import { fetchCryptoNews } from '@/lib/fetchers/news';
 import { generateSummary, type HistoryTurn } from '@/lib/summarizer';
 import { getSessionUser } from '@/lib/auth';
+import { prisma } from '@/lib/db';
 import {
   addMessage,
   autoTitleSession,
   createSession,
   getRecentContext,
 } from '@/lib/chat-storage';
+import { computeEntitlements } from '@/lib/tier';
+import { checkAndConsumeQuota } from '@/lib/rate-limit';
 import type {
   PriceData,
   WhaleTransaction,
@@ -45,6 +48,25 @@ export async function POST(req: Request) {
     sessionId = s.id;
   }
 
+  // ── Rate-limit check ───────────────────────────────────────────────────────
+  if (user) {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.sub },
+      select: { premiumExpiresAt: true, eliteExpiresAt: true },
+    });
+    const ent = computeEntitlements({
+      premiumExpiresAt: dbUser?.premiumExpiresAt?.toISOString() ?? null,
+      eliteExpiresAt: dbUser?.eliteExpiresAt?.toISOString() ?? null,
+    });
+    const quota = await checkAndConsumeQuota(user.sub, ent, 'console');
+    if (!quota.allowed) {
+      return Response.json(
+        { error: 'Message limit reached. Upgrade to send more.', resetAt: quota.resetAt, limit: quota.limit },
+        { status: 429 },
+      );
+    }
+  }
+
   let history: HistoryTurn[] = [];
   if (user && sessionId) history = await getRecentContext(sessionId, 4);
 
@@ -61,7 +83,6 @@ export async function POST(req: Request) {
   let response: QueryResponse;
 
   if (route.complexity === 'complex') {
-    // Agentic loop — model decides which tools to call
     const result = await runAgentLoop(query, lang, history);
     response = {
       ...result.data,
@@ -70,7 +91,6 @@ export async function POST(req: Request) {
       errors: result.errors,
     };
   } else {
-    // Fast path — hardcoded fan-out based on classified intents
     const [priceRes, whaleEthRes, whaleSolRes, defiRes, stakingRes, newsRes] =
       await Promise.allSettled([
         route.intents.includes('PRICE')
@@ -91,12 +111,12 @@ export async function POST(req: Request) {
       return res.value;
     };
 
-    const priceData  = extract(priceRes,    'price')     as PriceData[]        | undefined;
-    const whaleEth   = extract(whaleEthRes, 'whale_eth') as WhaleTransaction[] | undefined;
-    const whaleSol   = extract(whaleSolRes, 'whale_sol') as WhaleTransaction[] | undefined;
-    const newsData   = extract(newsRes,     'news')      as NewsItem[]         | undefined;
-    const defiData   = extract(defiRes,     'defi')      as DefiProtocol[]     | undefined;
-    const stakingData = extract(stakingRes, 'staking')   as StakingPool[]      | undefined;
+    const priceData   = extract(priceRes,    'price')     as PriceData[]        | undefined;
+    const whaleEth    = extract(whaleEthRes, 'whale_eth') as WhaleTransaction[] | undefined;
+    const whaleSol    = extract(whaleSolRes, 'whale_sol') as WhaleTransaction[] | undefined;
+    const newsData    = extract(newsRes,     'news')      as NewsItem[]         | undefined;
+    const defiData    = extract(defiRes,     'defi')      as DefiProtocol[]     | undefined;
+    const stakingData = extract(stakingRes,  'staking')   as StakingPool[]      | undefined;
 
     const whaleCombined = [...(whaleEth || []), ...(whaleSol || [])];
 

@@ -1,7 +1,7 @@
-import type { UserTier } from '@prisma/client';
 import { prisma } from '@/lib/db';
+import { walletTrackLimit } from '@/lib/tier';
+import type { Entitlements } from '@/lib/tier';
 import { isEvmAddress, normalizeEvm } from '@/lib/explorer/address';
-import { trackLimitFor } from '@/lib/tier';
 
 export type TrackedWalletRow = {
   id: string;
@@ -25,7 +25,7 @@ export async function listTrackedWallets(userId: string): Promise<TrackedWalletR
 
 export async function addTrackedWallet(
   userId: string,
-  tier: UserTier,
+  ent: Entitlements,
   rawAddress: string,
   label?: string | null,
 ): Promise<{ wallet: TrackedWalletRow } | { error: string; status: number }> {
@@ -34,11 +34,11 @@ export async function addTrackedWallet(
     return { error: 'Invalid EVM address.', status: 400 };
   }
 
-  const limit = trackLimitFor(tier);
+  const limit = walletTrackLimit(ent);
   const count = await prisma.trackedWallet.count({ where: { userId } });
   if (count >= limit) {
     return {
-      error: `Watchlist full (${limit} max on ${tier} tier).`,
+      error: `Watchlist full (${limit} max on your current plan).`,
       status: 403,
     };
   }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { CircleX } from 'lucide-react';
 import { useChat } from '@/contexts/ChatContext';
 
 interface SidebarProps {
@@ -99,11 +100,13 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             tabIndex={0}
             onClick={() => handleOpen(s.id)}
             onKeyDown={(e) => e.key === 'Enter' && handleOpen(s.id)}
-            className="w-full px-3 py-2.5 rounded-xl transition-all group flex items-start gap-2 cursor-pointer select-none hover:border-[rgba(6,182,212,.3)]"
+            className="w-full px-3 py-2.5 rounded-xl transition-all group flex items-start gap-2 cursor-pointer select-none"
             style={{
               background: activeSessionId === s.id ? 'rgba(99,102,241,.12)' : 'transparent',
-              border: activeSessionId === s.id ? '1px solid rgba(6,182,212,.35)' : '1px solid transparent',
+              border: activeSessionId === s.id ? '1px solid rgba(6,182,212,.25)' : '1px solid transparent',
             }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(99,102,241,.16)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = activeSessionId === s.id ? 'rgba(99,102,241,.12)' : 'transparent'; }}
           >
             <span className="text-xs mt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>💬</span>
             <div className="flex-1 min-w-0">
@@ -119,7 +122,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             >
               {deletingId === s.id
                 ? <span className="w-3 h-3 border border-indigo-400/30 border-t-indigo-400 rounded-full animate-spin" />
-                : '🗑'}
+                : <CircleX size={13} />}
             </button>
           </div>
         ))}

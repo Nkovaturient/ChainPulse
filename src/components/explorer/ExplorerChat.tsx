@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import MarkdownBody from '@/components/MarkdownBody';
 import GlassPanel from '@/components/ui/GlassPanel';
+import { usePlansModal } from '@/contexts/PlansModalContext';
 import type { Language } from '@/types';
 
 interface ChatTurn {
@@ -25,9 +26,11 @@ const SUGGESTIONS = [
 ];
 
 export default function ExplorerChat({ address, lang }: Props) {
+  const { openPlansModal } = usePlansModal();
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const [quotaBlocked, setQuotaBlocked] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const counter = useRef(0);
 
@@ -55,7 +58,15 @@ export default function ExplorerChat({ address, lang }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ address, query: text, language: lang, history }),
       });
-      const data = (await res.json()) as { summary?: string; error?: string };
+      const data = (await res.json()) as { summary?: string; error?: string; resetAt?: string };
+      if (res.status === 429) {
+        setQuotaBlocked(true);
+        setTurns((prev) => prev.filter((t) => t.id !== `${id}-p`).concat({
+          id: `${id}-r`, role: 'assistant',
+          text: data.error ?? "You've reached your daily message limit.",
+        }));
+        return;
+      }
       const reply: ChatTurn = {
         id: `${id}-r`,
         role: 'assistant',
@@ -138,26 +149,39 @@ export default function ExplorerChat({ address, lang }: Props) {
         <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="p-3 border-t border-[var(--glass-border)]">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask anything about this wallet…"
-            disabled={busy}
-            className="flex-1 px-3 py-2 rounded-xl text-sm outline-none glass-read-inner"
-            style={{ color: 'var(--text-read)' }}
-          />
+      {quotaBlocked ? (
+        <div className="p-3 border-t border-[var(--glass-border)] flex items-center justify-between gap-2 text-xs"
+          style={{ color: '#fca5a5' }}>
+          <span>Daily limit reached.</span>
           <button
-            type="submit"
-            disabled={busy || !input.trim()}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all disabled:opacity-40 glass-cta"
+            onClick={() => openPlansModal('console_limit')}
+            className="font-semibold px-3 py-1 rounded-lg text-white glass-cta"
           >
-            {busy ? '…' : 'Ask'}
+            Upgrade
           </button>
         </div>
-      </form>
+      ) : (
+        <form onSubmit={handleSubmit} className="p-3 border-t border-[var(--glass-border)]">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask anything about this wallet…"
+              disabled={busy}
+              className="flex-1 px-3 py-2 rounded-xl text-sm outline-none glass-read-inner"
+              style={{ color: 'var(--text-read)' }}
+            />
+            <button
+              type="submit"
+              disabled={busy || !input.trim()}
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all disabled:opacity-40 glass-cta"
+            >
+              {busy ? '…' : 'Ask'}
+            </button>
+          </div>
+        </form>
+      )}
     </GlassPanel>
   );
 }

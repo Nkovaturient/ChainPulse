@@ -4,7 +4,7 @@
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/) [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/) [![Netlify](https://img.shields.io/badge/deploy-Netlify-000?style=flat-square&logo=netlify)](https://netlify.com/)
 
-**Agentic mediator for crypto intel** — EN · हिं · বাং — Read-only. No Wallet connect. No upfront subscription.
+**Agentic mediator for crypto intel** — EN · हिं · বাং — Read-only. No wallet connection. No upfront subscription — opt into Premium or Insider Bot access whenever you like.
 
 </div>
 

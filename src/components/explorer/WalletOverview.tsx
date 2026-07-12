@@ -1,5 +1,6 @@
 'use client';
 
+import { RefreshCw } from 'lucide-react';
 import { CHAIN_BY_KEY } from '@/lib/explorer/chains';
 import GlassPanel from '@/components/ui/GlassPanel';
 import { shortenAddress } from '@/lib/explorer/address';
@@ -7,6 +8,8 @@ import type { WalletReport } from '@/lib/explorer/types';
 
 interface Props {
   report: WalletReport;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }
 
 function fmtUsd(n: number): string {
@@ -23,7 +26,7 @@ function fmtAmount(n: number, decimals = 4): string {
   return n.toLocaleString('en-US', { maximumFractionDigits: decimals });
 }
 
-export default function WalletOverview({ report }: Props) {
+export default function WalletOverview({ report, onRefresh, refreshing = false }: Props) {
   const activeChains = report.perChain.filter((p) => p.totalUsd > 0 || p.txCount > 0);
   const inactiveCount = report.perChain.length - activeChains.length;
 
@@ -33,7 +36,7 @@ export default function WalletOverview({ report }: Props) {
       <GlassPanel glow="purple" className="rounded-2xl p-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <p className="text-xs font-mono uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-xs font-mono uppercase tracking-wider mb-1">
               Net worth (estimated)
             </p>
             <div className="flex items-baseline gap-2">
@@ -62,9 +65,23 @@ export default function WalletOverview({ report }: Props) {
         </div>
       </GlassPanel>
       <div>
-        <h3 className="text-xs font-semibold uppercase tracking-wider mb-2 px-1" style={{ color: 'var(--text-muted)' }}>
-          Per-chain breakdown
-        </h3>
+        <div className="flex items-center justify-between gap-3 mb-3 px-1">
+          <h3 className="text-xs font-semibold uppercase tracking-wider">
+            Per-chain breakdown
+          </h3>
+          {onRefresh && (
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={refreshing}
+              title="Refresh wallet data"
+              className="flex items-center gap-1.5 text-[12px] font-bold px-2.5 py-1.5 rounded-lg glass-panel transition-all hover:opacity-80 hover:-translate-y-px active:translate-y-0 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
+              Refresh
+            </button>
+          )}
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
           {report.perChain.map((p) => {
             const spec = CHAIN_BY_KEY[p.chain];
@@ -101,7 +118,7 @@ export default function WalletOverview({ report }: Props) {
       {/* Native balances summary */}
       {report.natives.filter((n) => n.amount > 0).length > 0 && (
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wider mb-2 px-1" style={{ color: 'var(--text-muted)' }}>
+          <h3 className="text-xs font-semibold uppercase tracking-wider mb-2 px-1">
             Native holdings
           </h3>
           <div className="rounded-xl glass-read overflow-hidden">

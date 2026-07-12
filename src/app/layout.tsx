@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { PlansModalProvider } from '@/contexts/PlansModalContext';
 import JotformFeedback from '@/components/JotformFeedback';
 
 const geistSans = Geist({ variable: '--font-sans', subsets: ['latin'] });
@@ -20,8 +21,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen antialiased">
         <ThemeProvider>
           <AuthProvider>
-            {children}
-            <JotformFeedback />
+            <PlansModalProvider>
+              {children}
+              <JotformFeedback />
+            </PlansModalProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

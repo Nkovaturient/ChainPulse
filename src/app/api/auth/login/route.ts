@@ -35,7 +35,14 @@ export async function POST(req: Request) {
       sub: user.id, email: user.email, username: user.username, role: user.role,
     });
     const res = NextResponse.json({
-      user: { id: user.id, email: user.email, username: user.username, role: user.role, tier: user.tier },
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        premiumExpiresAt: user.premiumExpiresAt?.toISOString() ?? null,
+        eliteExpiresAt: user.eliteExpiresAt?.toISOString() ?? null,
+      },
     });
     attachSessionCookie(res, token);
     return res;
