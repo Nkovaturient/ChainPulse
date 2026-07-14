@@ -352,7 +352,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-white/5 py-6 text-center text-white/25 text-xs">
-        ChainPulse · No financial advice · Data from CoinGecko, DefiLlama, Etherscan, Solscan, RSS feeds
+        ChainPulse · No financial advice · © Nk 2026
       </footer>
     </div>
     </>
