@@ -70,7 +70,7 @@ Read-only multichain wallet inspection — no wallet connect. Paste any `0x…` 
 **UI** (all take `WalletReport` — no duplicate fetch logic)
 
 - `WalletOverview` · `AllocationCharts` (coin + category donuts) · `PerformanceChart` (24h movers/laggards) · `PortfolioInsights` (flags; premium narrative when `tier === premium`)
-- `TokenList` · `TxTimeline` · `ExplorerChat` (Sonnet + explorer tools)
+- `TokenList` · `TxTimeline` · `ExplorerChat` (Sonnet + explorer tools; `InlineComposer` pill input)
 - `WalletTracker` — DB-backed watchlist sidebar
 
 **API**
@@ -81,6 +81,7 @@ Read-only multichain wallet inspection — no wallet connect. Paste any `0x…` 
 | `POST /api/explorer/query` | Agent Q&A over a wallet snapshot |
 | `GET/POST /api/tracked-wallets` | List / add watchlist (server-enforced limits) |
 | `DELETE /api/tracked-wallets/[id]` | Remove tracked address |
+| `POST /api/wispr/token` | Mint short-lived Wispr Flow client token for voice dictation |
 
 **Accounts & tiers** (`prisma/schema.prisma`)
 
@@ -154,6 +155,21 @@ TOKEN_BUDGETS.synthesize            // 550 — raise if answers feel clipped
 
 ---
 
+### Input & voice
+
+Shared composers in `src/components/composer/` — container-level focus (darken + neutral border via `.composer-shell` / `.glass-input:focus-within`), no purple field outline.
+
+| Surface | Component | Layout |
+|---------|-----------|--------|
+| Console (`/app`) | `MultilineComposer` | Multi-line textarea + bottom row (mic · Ask↑) |
+| Insider (`/insider`) | `MultilineComposer` | Same, gold variant |
+| Explorer chat | `InlineComposer` | Single-line pill — mic + Ask inside the bar |
+| Explorer address | `AddressInput` | Single-line pill — mic + Inspect → |
+
+**Voice dictation** ([Wispr Flow](https://api-docs.wisprflow.ai)): mic buttons render when `WISPR_API_KEY` is set. Browser streams audio over Wispr’s WebSocket; org key stays server-side (`POST /api/wispr/token`).
+
+---
+
 ### Run locally
 
 ```bash
@@ -161,6 +177,10 @@ npm install
 npx prisma migrate deploy --config prisma.config.ts   # PostgreSQL + tracked wallets / tier
 npm run dev
 ```
+
+**Required:** `DATABASE_URL`, `JWT_SECRET`, `ANTHROPIC_API_KEY`  
+**Recommended:** `COINGECKO_API_KEY`, `ETHERSCAN_API_KEY`  
+**Optional:** `WISPR_API_KEY` (voice input — `fl-…` from Wispr Flow developers)
 
 ---
 
