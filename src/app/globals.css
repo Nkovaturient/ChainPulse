@@ -249,18 +249,53 @@ body {
 [data-theme="light"] .glass-read-inner {
   border-color: rgba(15,23,42,.1);
 }
-.glass-input {
+.glass-input,
+.composer-shell {
   background: var(--glass-read-bg);
   border: 1px solid var(--glass-border);
   border-radius: 1.25rem;
   box-shadow: var(--shadow), var(--glow-teal);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  transition: border-color .25s, box-shadow .25s;
+  transition: background .2s, border-color .2s, box-shadow .2s, transform .2s;
 }
-.glass-input:focus-within {
-  box-shadow: 0 4px 32px rgba(0,0,0,.28), 0 1.5px 8px rgba(0,0,0,.14);
+.glass-input:focus-within,
+.composer-shell:focus-within {
+  background: var(--composer-active-bg, var(--glass-read-bg-inner));
+  border-color: var(--composer-active-border, rgba(255,255,255,.16));
+  box-shadow:
+    var(--shadow),
+    inset 0 1px 0 rgba(255,255,255,.06),
+    0 4px 24px rgba(0,0,0,.22);
   transform: translateY(-1px);
+}
+[data-theme="light"] .glass-input:focus-within,
+[data-theme="light"] .composer-shell:focus-within {
+  --composer-active-bg: rgba(248,250,252,.98);
+  --composer-active-border: rgba(15,23,42,.14);
+  box-shadow:
+    var(--shadow),
+    inset 0 1px 0 rgba(255,255,255,.9),
+    0 4px 20px rgba(15,23,42,.08);
+}
+.composer-shell--insider {
+  border-color: rgba(234,179,8,.18);
+  box-shadow: var(--shadow), 0 0 20px rgba(234,179,8,.08);
+}
+.composer-shell--insider:focus-within {
+  background: rgba(234,179,8,.06);
+  border-color: rgba(234,179,8,.32);
+  box-shadow:
+    var(--shadow),
+    inset 0 1px 0 rgba(234,179,8,.08),
+    0 4px 24px rgba(0,0,0,.22);
+}
+.glass-input :is(input, textarea):focus,
+.glass-input :is(input, textarea):focus-visible,
+.composer-shell :is(input, textarea):focus,
+.composer-shell :is(input, textarea):focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 .glass-cta {
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
@@ -398,6 +433,10 @@ body {
 
 /* ─── Focus ring ─── */
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.glass-input :is(input, textarea):focus-visible,
+.composer-shell :is(input, textarea):focus-visible {
+  outline: none;
+}
 
 /* ─── Cursor pointer on all interactive elements ─── */
 button:not(:disabled),

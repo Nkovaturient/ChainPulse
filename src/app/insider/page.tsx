@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Zap, Lock, AlertTriangle, RefreshCw, Send } from 'lucide-react';
+import { Zap, Lock, AlertTriangle, RefreshCw } from 'lucide-react';
 import AtmosphereBackground from '@/components/ui/AtmosphereBackground';
+import MultilineComposer from '@/components/composer/MultilineComposer';
 import MarkdownBody from '@/components/MarkdownBody';
 import { usePlansModal } from '@/contexts/PlansModalContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -205,19 +206,17 @@ export default function InsiderPage() {
                 Have an invite code?
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
+              <div className="composer-shell flex-1 flex items-center">
                 <input
                   type="text"
                   value={inviteCode}
                   onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                   onKeyDown={(e) => e.key === 'Enter' && void handleRedeem()}
                   placeholder="Enter your code"
-                  className="flex-1 px-4 py-3.5 rounded-2xl text-sm outline-none transition-all focus:ring-2 focus:ring-yellow-500/30"
-                  style={{
-                    background: 'rgba(255,255,255,.05)',
-                    border: '1px solid rgba(255,255,255,.12)',
-                    color: 'var(--text)',
-                  }}
+                  className="w-full px-4 py-3.5 text-sm bg-transparent border-none outline-none"
+                  style={{ color: 'var(--text)' }}
                 />
+              </div>
                 <button
                   type="button"
                   onClick={() => void handleRedeem()}
@@ -383,31 +382,16 @@ export default function InsiderPage() {
           </div>
 
           <div className="p-4 border-t flex-shrink-0" style={{ borderColor: 'rgba(234,179,8,.12)' }}>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(input); } }}
-                placeholder="Ask anything about smart-money flows…"
-                disabled={busy}
-                className="flex-1 px-4 py-2.5 rounded-xl text-sm outline-none"
-                style={{
-                  background: 'rgba(234,179,8,.04)',
-                  border: '1px solid rgba(234,179,8,.15)',
-                  color: 'var(--text)',
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => void send(input)}
-                disabled={busy || !input.trim()}
-                className="w-10 h-10 rounded-xl flex items-center justify-center transition-all disabled:opacity-40"
-                style={{ background: 'linear-gradient(135deg, #ca8a04, #a16207)' }}
-              >
-                <Send size={14} className="text-white" />
-              </button>
-            </div>
+            <MultilineComposer
+              value={input}
+              onChange={setInput}
+              onSubmit={() => void send(input)}
+              placeholder="Ask anything about smart-money flows…"
+              submitLabel="Send"
+              isLoading={busy}
+              variant="insider"
+              rows={1}
+            />
           </div>
         </div>
       </main>

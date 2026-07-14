@@ -164,7 +164,7 @@ export default function LandingPage() {
         {/* Badge */}
         <div className="animate-fade-up delay-100 mb-6 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-medium">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          Live data · 2 AI calls per query
+          Live data
         </div>
 
         {/* Headline */}

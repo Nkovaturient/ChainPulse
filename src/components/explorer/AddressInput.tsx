@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { detectAddressKind } from '@/lib/explorer/address';
+// import WisprMicButton from '@/components/composer/WisprMicButton';
 
 interface Props {
   onSubmit: (addr: string) => void;
@@ -39,9 +40,10 @@ export default function AddressInput({ onSubmit, initial = '', busy }: Props) {
           placeholder="Paste a wallet address (0x… or ENS — EVM supported now)"
           spellCheck={false}
           autoComplete="off"
-          className="w-full px-5 py-4 pr-28 text-sm font-mono outline-none bg-transparent"
+          className="w-full px-5 py-4 pr-36 text-sm font-mono outline-none bg-transparent"
           style={{ color: 'var(--text)' }}
         />
+        {/* <WisprMicButton value={value} onChange={setValue} disabled={!!busy} /> */}
         <button
           type="submit"
           disabled={kind !== 'evm' || busy}

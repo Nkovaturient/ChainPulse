@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import InlineComposer from '@/components/composer/InlineComposer';
 import MarkdownBody from '@/components/MarkdownBody';
 import GlassPanel from '@/components/ui/GlassPanel';
 import { usePlansModal } from '@/contexts/PlansModalContext';
@@ -84,11 +85,6 @@ export default function ExplorerChat({ address, lang }: Props) {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    void send(input);
-  };
-
   return (
     <GlassPanel className="rounded-2xl overflow-hidden flex flex-col !p-0">
 
@@ -161,26 +157,16 @@ export default function ExplorerChat({ address, lang }: Props) {
           </button>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="p-3 border-t border-[var(--glass-border)]">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask anything about this wallet…"
-              disabled={busy}
-              className="flex-1 px-3 py-2 rounded-xl text-sm outline-none glass-read-inner"
-              style={{ color: 'var(--text-read)' }}
-            />
-            <button
-              type="submit"
-              disabled={busy || !input.trim()}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all disabled:opacity-40 glass-cta"
-            >
-              {busy ? '…' : 'Ask'}
-            </button>
-          </div>
-        </form>
+        <div className="p-3 border-t border-[var(--glass-border)]">
+          <InlineComposer
+            value={input}
+            onChange={setInput}
+            onSubmit={() => void send(input)}
+            placeholder="Ask anything about this wallet…"
+            submitLabel="Ask"
+            isLoading={busy}
+          />
+        </div>
       )}
     </GlassPanel>
   );
