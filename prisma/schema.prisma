@@ -18,7 +18,8 @@ model User {
   id                String              @id @default(uuid()) @db.Uuid
   email             String              @unique
   username          String              @unique
-  hashedPassword    String              @map("hashed_password")
+  hashedPassword    String?             @map("hashed_password")
+  authProvider      String              @default("email") @map("auth_provider")
   role              UserRole            @default(just_exploring)
   premiumExpiresAt  DateTime?           @map("premium_expires_at") @db.Timestamptz(6)
   eliteExpiresAt    DateTime?           @map("elite_expires_at") @db.Timestamptz(6)

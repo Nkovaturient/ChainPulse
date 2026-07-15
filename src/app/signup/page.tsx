@@ -1,8 +1,10 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AuthShell from '@/components/AuthShell';
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
+import AuthDivider from '@/components/auth/AuthDivider';
 import { useAuth } from '@/contexts/AuthContext';
 import { safePostAuthPath } from '@/lib/auth-redirect';
 import type { UserRole } from '@/types';
@@ -20,6 +22,9 @@ function SignupForm() {
   const params = useSearchParams();
   const { refresh } = useAuth();
 
+  const isOAuth = params.get('oauth') === '1';
+  const nextParam = params.get('next');
+
   const [step, setStep] = useState<1 | 2>(1);
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
@@ -28,6 +33,10 @@ function SignupForm() {
   const [role, setRole] = useState<UserRole | ''>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isOAuth) setStep(2);
+  }, [isOAuth]);
 
   const nextStep = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,23 +48,29 @@ function SignupForm() {
 
   const submit = async () => {
     if (!role) { setError('Please choose your role.'); return; }
+    if (isOAuth && !username) { setError('Please choose a username.'); return; }
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/auth/register', {
+      const endpoint = isOAuth ? '/api/auth/oauth/complete' : '/api/auth/register';
+      const body = isOAuth
+        ? { username, role }
+        : { email, username, password, role };
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify({ email, username, password, role }),
+        body: JSON.stringify(body),
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
-        setStep(1);
+        if (!isOAuth) setStep(1);
         setError(data.error ?? 'Registration failed.');
         return;
       }
       await refresh();
-      const dest = safePostAuthPath(params.get('next'), '/dashboard');
+      const dest = safePostAuthPath(nextParam, '/dashboard');
       window.location.assign(dest);
     } catch {
       setError('Network error. Please try again.');
@@ -64,10 +79,17 @@ function SignupForm() {
     }
   };
 
+  const shellSubtitle = isOAuth
+    ? 'Almost there — pick a username and role'
+    : 'Join ChainPulse — free, no wallet needed';
+
   return (
-    <AuthShell title="Create account" subtitle="Join ChainPulse — free, no wallet needed">
+    <AuthShell title="Create account" subtitle={shellSubtitle}>
       {step === 1 ? (
         <form onSubmit={nextStep} className="space-y-4">
+          <GoogleSignInButton next={nextParam} />
+          <AuthDivider />
+
           <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@example.com" />
           <Field label="Username" value={username} onChange={setUsername} placeholder="satoshi42" />
 
@@ -115,6 +137,10 @@ function SignupForm() {
         </form>
       ) : (
         <div className="space-y-6 animate-fade-up">
+          {isOAuth && (
+            <Field label="Username" value={username} onChange={setUsername} placeholder="satoshi42" />
+          )}
+
           <div>
             <p className="text-xs font-semibold text-white/70 mb-3 uppercase tracking-wider">
               How do you describe yourself?
@@ -152,12 +178,21 @@ function SignupForm() {
           {error && <ErrorBox msg={error} />}
 
           <div className="flex gap-3">
-            <button type="button" onClick={() => { setStep(1); setError(''); }}
+            <button
+              type="button"
+              onClick={() => {
+                if (isOAuth) {
+                  router.push(nextParam ? `/login?next=${encodeURIComponent(nextParam)}` : '/login');
+                  return;
+                }
+                setStep(1);
+                setError('');
+              }}
               className="flex-1 py-3 rounded-xl font-medium text-sm border transition-all"
               style={{ borderColor: 'rgba(255,255,255,.1)', color: '#8892a4' }}>
               ← Back
             </button>
-            <button type="button" onClick={submit} disabled={!role || loading}
+            <button type="button" onClick={submit} disabled={!role || loading || (isOAuth && !username)}
               className="flex-[2] py-3 rounded-xl font-semibold text-sm text-white transition-all disabled:opacity-40 flex items-center justify-center gap-2"
               style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
               {loading && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}

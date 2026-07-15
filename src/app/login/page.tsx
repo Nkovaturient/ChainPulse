@@ -3,8 +3,18 @@
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AuthShell from '@/components/AuthShell';
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
+import AuthDivider from '@/components/auth/AuthDivider';
 import { useAuth } from '@/contexts/AuthContext';
 import { safePostAuthPath } from '@/lib/auth-redirect';
+
+const OAUTH_ERROR_MESSAGES: Record<string, string> = {
+  missing_code: 'Google sign-in was cancelled or interrupted.',
+  exchange: 'Could not complete Google sign-in. Please try again.',
+  no_email: 'Your Google account did not provide an email address.',
+  config: 'Google sign-in is not configured on this server.',
+  server: 'Something went wrong during Google sign-in.',
+};
 
 function LoginForm() {
   const router = useRouter();
@@ -16,6 +26,12 @@ function LoginForm() {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const nextParam = params.get('next');
+  const oauthError =
+    params.get('error') === 'oauth'
+      ? OAUTH_ERROR_MESSAGES[params.get('reason') ?? ''] ?? 'Google sign-in failed. Please try again.'
+      : '';
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +59,9 @@ function LoginForm() {
   return (
     <AuthShell title="Welcome back" subtitle="Sign in to your ChainPulse account">
       <form onSubmit={submit} className="space-y-4">
+        <GoogleSignInButton next={nextParam} disabled={loading} />
+        <AuthDivider />
+
         <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@example.com" disabled={loading} />
 
         <div className="space-y-1.5">
@@ -71,10 +90,10 @@ function LoginForm() {
           </div>
         </div>
 
-        {error && (
+        {(error || oauthError) && (
           <div className="rounded-xl px-4 py-3 text-xs text-red-300 border border-red-500/20"
             style={{ background: 'rgba(239,68,68,.08)' }}>
-            {error}
+            {error || oauthError}
           </div>
         )}
 
