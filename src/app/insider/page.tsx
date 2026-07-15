@@ -4,10 +4,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Zap, Lock, AlertTriangle, RefreshCw } from 'lucide-react';
 import AtmosphereBackground from '@/components/ui/AtmosphereBackground';
+import EliteAmbientCanvas from '@/components/ui/EliteAmbientCanvas';
+import AppHeader from '@/components/layout/AppHeader';
 import MultilineComposer from '@/components/composer/MultilineComposer';
 import MarkdownBody from '@/components/MarkdownBody';
 import { usePlansModal } from '@/contexts/PlansModalContext';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface Alert {
   id: string;
@@ -31,7 +32,6 @@ interface Turn {
 export default function InsiderPage() {
   const router = useRouter();
   const { openPlansModal } = usePlansModal();
-  const { user } = useAuth();
 
   const [access, setAccess] = useState<'loading' | 'locked' | 'granted'>('loading');
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -241,33 +241,13 @@ export default function InsiderPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col relative overflow-hidden">
+    <div className="h-screen flex flex-col relative overflow-hidden insider-shell">
       <AtmosphereBackground variant="insider" />
+      <EliteAmbientCanvas />
 
-      <header className="app-header flex-shrink-0 px-5 py-3 flex items-center justify-between gap-4 relative z-20">
-        <div className="flex items-center gap-3">
-          <button onClick={() => router.push('/app')} className="flex items-center gap-2">
-            <span className="text-xl">⛓</span>
-            <span className="font-bold text-sm hidden sm:block" style={{ color: 'var(--text)' }}>ChainPulse</span>
-          </button>
-          <span className="text-xs px-2 py-0.5 rounded-md font-mono flex items-center gap-1.5"
-            style={{ background: 'rgba(234,179,8,.12)', color: '#facc15' }}>
-            <Zap size={11} /> Insider
-          </span>
-        </div>
-        <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-          {user?.username && <span className="hidden sm:block">{user.username}</span>}
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="px-3 py-1.5 rounded-xl glass-panel transition-all hover:opacity-80 text-xs"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            Dashboard
-          </button>
-        </div>
-      </header>
+      <AppHeader surface="insider" />
 
-      <main className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-0 min-h-0 relative z-10">
+      <main className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-0 min-h-0 relative z-10 insider-shell__main">
         {/* Alerts feed */}
         <div className="flex flex-col border-r min-h-0" style={{ borderColor: 'rgba(234,179,8,.12)' }}>
           <div className="flex items-center justify-between px-5 py-3 border-b flex-shrink-0"

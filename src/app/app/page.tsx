@@ -1,25 +1,21 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import QueryInput from '@/components/QueryInput';
 import ChatThread from '@/components/ChatThread';
 import Sidebar from '@/components/Sidebar';
 import SkeletonCard from '@/components/SkeletonCard';
 import AtmosphereBackground from '@/components/ui/AtmosphereBackground';
 import GlassDisc from '@/components/ui/GlassDisc';
+import AppHeader from '@/components/layout/AppHeader';
 import { t } from '@/lib/translations';
-import { useTheme } from '@/contexts/ThemeContext';
-import { useAuth } from '@/contexts/AuthContext';
 import { ChatProvider, useChat } from '@/contexts/ChatContext';
 import { usePlansModal } from '@/contexts/PlansModalContext';
 import type { Language } from '@/types';
 
 function AppPageContent() {
-  const router = useRouter();
   const params = useSearchParams();
-  const { theme, toggle } = useTheme();
-  const { user } = useAuth();
   const { sendMessage, newSession, activeSessionId, messages, quota } = useChat();
   const { openPlansModal } = usePlansModal();
 
@@ -65,103 +61,30 @@ function AppPageContent() {
 
       {/* ── Main column ── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10">
-        {/* ── App Header ── */}
-        <header className="app-header flex-shrink-0 z-20 px-4 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            {/* Sidebar collapse/expand toggle */}
-            <button
-              onClick={() => setSidebarOpen((v) => !v)}
-              className="w-8 h-8 rounded-xl flex items-center justify-center glass-panel transition-all hover:opacity-80"
-              style={{ color: 'var(--text-muted)' }}
-              title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-            >
-              {sidebarOpen ? (
-                /* Panel-collapse icon: sidebar lines + left arrow */
-                <svg width="16" height="14" viewBox="0 0 16 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="1" y="1" width="14" height="12" rx="2" />
-                  <line x1="5" y1="1" x2="5" y2="13" />
-                  <polyline points="9,5 7,7 9,9" />
-                </svg>
-              ) : (
-                /* Panel-expand icon: sidebar lines + right arrow */
-                <svg width="16" height="14" viewBox="0 0 16 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="1" y="1" width="14" height="12" rx="2" />
-                  <line x1="5" y1="1" x2="5" y2="13" />
-                  <polyline points="7,5 9,7 7,9" />
-                </svg>
-              )}
-            </button>
-
-            {/* <button onClick={() => router.push('/')} className="flex items-center gap-1.5 group">
-              <span className="text-xl">⛓</span>
-              <span className="font-bold tracking-tight text-sm hidden sm:block" style={{ color: 'var(--text)' }}>
-                ChainPulse
-              </span>
-            </button> */}
-
-
-          </div>
-
-          {/* Trust badge */}
-          <div
-            className="hidden sm:block text-[11px] px-3 py-1 rounded-full glass-panel"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            {tr.trust_banner}
-          </div>
-
-          {/* Controls */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => router.push('/explorer')}
-              className="hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-xl glass-panel text-xs font-medium transition-all hover:opacity-80"
-              style={{ color: 'var(--text-muted)' }}
-              title="Wallet Explorer"
-            >
-              🔍 Explorer
-            </button>
-            <button
-              onClick={() => router.push('/insider')}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all hover:opacity-80"
-              style={{ background: 'rgba(234,179,8,.1)', color: '#facc15', border: '1px solid rgba(234,179,8,.2)' }}
-              title="Insider Bot"
-            >
-              ⚡ Insider
-            </button>
-            {user && (
-              <button
-                onClick={() => router.push('/dashboard')}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl glass-panel text-xs font-medium transition-all hover:opacity-80"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
-                  style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
-                  {user.username[0].toUpperCase()}
-                </span>
-                {user.username}
-              </button>
-            )}
-
-            {/* Lang switcher */}
+        <AppHeader
+          surface="console"
+          showSidebarToggle
+          sidebarOpen={sidebarOpen}
+          onSidebarToggle={() => setSidebarOpen((v) => !v)}
+          trustBanner={tr.trust_banner}
+          extraControls={
             <div className="flex items-center gap-1 rounded-xl glass-panel p-1">
               {langs.map((l) => (
-                <button key={l} onClick={() => setLang(l)}
+                <button
+                  key={l}
+                  onClick={() => setLang(l)}
                   className="px-2 py-0.5 rounded-lg text-xs font-medium transition-all"
-                  style={{ background: lang === l ? 'var(--accent)' : 'transparent', color: lang === l ? '#fff' : 'var(--text-muted)' }}>
+                  style={{
+                    background: lang === l ? 'var(--accent)' : 'transparent',
+                    color: lang === l ? '#fff' : 'var(--text-muted)',
+                  }}
+                >
                   {langLabel(l)}
                 </button>
               ))}
             </div>
-
-            {/* Theme toggle */}
-            <button onClick={toggle}
-              className="w-8 h-8 rounded-xl flex items-center justify-center glass-panel transition-all hover:scale-105"
-              style={{ color: 'var(--text-muted)' }}
-              title="Toggle theme">
-              {theme === 'dark' ? '☀️' : '🌙'}
-            </button>
-          </div>
-        </header>
+          }
+        />
 
         {/* ── Chat area ── */}
         <main className="flex-1 flex flex-col min-h-0 relative">

@@ -1,23 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { X, Check, Zap, Lock, Sparkles } from 'lucide-react';
 import { PLAN_CATALOG, type PlanDef } from '@/lib/tier';
 import type { PlansModalReason } from '@/contexts/PlansModalContext';
 import { loadRazorpayScript } from '@/lib/billing/razorpay-checkout';
-
-interface BillingStatus {
-  premiumActive: boolean;
-  premiumExpiresAt: string | null;
-  eliteActive: boolean;
-  eliteExpiresAt: string | null;
-  quota: {
-    used: number;
-    limit: number | null;
-    unlimited: boolean;
-    remaining: number | null;
-  };
-}
+import { useBillingStatus } from '@/hooks/useBillingStatus';
 
 interface CheckoutOrderResponse {
   order_id: string;
@@ -160,21 +148,12 @@ function PlanCard({
 }
 
 export default function PlansModal({ reason, onClose }: Props) {
-  const [status, setStatus] = useState<BillingStatus | null>(null);
+  const { status, refresh } = useBillingStatus();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
 
-  const refreshStatus = useCallback(() => {
-    return fetch('/api/billing/status')
-      .then((r) => r.json())
-      .then((d: BillingStatus) => setStatus(d))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    void refreshStatus();
-  }, [refreshStatus]);
+  const refreshStatus = refresh;
 
   const handleUpgrade = useCallback(async (planId: string) => {
     setCheckoutLoading(true);

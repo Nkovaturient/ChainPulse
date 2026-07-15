@@ -594,3 +594,172 @@ textarea { resize: none; }
   background: rgba(234, 179, 8, 0.06);
 }
 
+/* ─── Elite feature nav (segmented 3D pill) ─── */
+.elite-feature-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 1rem;
+  background: rgba(5, 9, 18, 0.55);
+  border: 1px solid rgba(234, 179, 8, 0.18);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transform-style: preserve-3d;
+  perspective: 800px;
+}
+
+.elite-feature-nav__segment {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  transition:
+    transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    color 0.2s ease,
+    opacity 0.2s ease;
+  z-index: 1;
+}
+
+.elite-feature-nav__segment:not(.elite-feature-nav__segment--active) {
+  opacity: 0.75;
+}
+
+.elite-feature-nav__segment:not(.elite-feature-nav__segment--active):hover {
+  opacity: 1;
+  transform: translateY(-1px);
+  color: var(--text);
+}
+
+.elite-feature-nav__segment--active {
+  color: #fef3c7;
+  transform: translateY(-2px) scale(1.02);
+}
+
+.elite-feature-nav__segment--gold.elite-feature-nav__segment--active {
+  color: #facc15;
+}
+
+.elite-feature-nav__indicator {
+  position: absolute;
+  inset: 0;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.22), rgba(99, 102, 241, 0.14));
+  border: 1px solid rgba(234, 179, 8, 0.35);
+  box-shadow:
+    0 8px 24px rgba(202, 138, 4, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  z-index: -1;
+}
+
+.elite-feature-nav__icon {
+  flex-shrink: 0;
+}
+
+.elite-feature-nav__label {
+  white-space: nowrap;
+}
+
+/* ─── Elite header layout ─── */
+.app-header--elite {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1rem;
+}
+
+.app-header--elite .app-header__left {
+  justify-self: start;
+}
+
+.app-header--elite .app-header__center {
+  justify-self: center;
+}
+
+.app-header--elite .app-header__right {
+  justify-self: end;
+}
+
+@media (max-width: 640px) {
+  .app-header--elite {
+    grid-template-columns: auto 1fr auto;
+  }
+  .elite-feature-nav__segment {
+    padding: 0.45rem 0.625rem;
+  }
+}
+
+/* ─── Elite dashboard cards ─── */
+.elite-dashboard-card {
+  border: 1px solid rgba(234, 179, 8, 0.22);
+}
+
+.elite-feature-card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.04) 0%, rgba(17, 24, 39, 0.5) 100%);
+}
+
+.elite-feature-card--console {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.85), rgba(139, 92, 246, 0.75));
+  border-color: rgba(99, 102, 241, 0.45);
+}
+
+.elite-feature-card--insider {
+  background: linear-gradient(160deg, rgba(234, 179, 8, 0.14) 0%, rgba(17, 24, 39, 0.55) 100%);
+  border-color: rgba(234, 179, 8, 0.35);
+}
+
+.elite-quick-action {
+  transition:
+    transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.22s ease;
+}
+
+.elite-quick-action:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+.insider-shell {
+  --insider-sidebar-width: 0px;
+}
+
+.insider-shell__main {
+  margin-right: var(--insider-sidebar-width);
+}
+
+/* ─── Elite ambient fallback (no WebGL) ─── */
+.elite-ambient-fallback {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 10%, rgba(234, 179, 8, 0.12), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 85% 80%, rgba(99, 102, 241, 0.1), transparent 50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .elite-feature-nav__segment--active {
+    transform: none;
+  }
+  .elite-feature-nav__segment:not(.elite-feature-nav__segment--active):hover {
+    transform: none;
+  }
+  .elite-quick-action:hover,
+  .elite-dashboard-card:hover,
+  .elite-feature-card:hover {
+    transform: none;
+  }
+}
+

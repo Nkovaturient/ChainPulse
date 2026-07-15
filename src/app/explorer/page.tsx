@@ -14,9 +14,9 @@ import ExplorerChat from '@/components/explorer/ExplorerChat';
 import AtmosphereBackground from '@/components/ui/AtmosphereBackground';
 import GlassDisc from '@/components/ui/GlassDisc';
 import GlassPanel from '@/components/ui/GlassPanel';
+import AppHeader from '@/components/layout/AppHeader';
 import { CHAIN_COUNT, chainNamesBlurb } from '@/lib/explorer/chains';
 import { computeEntitlements } from '@/lib/tier';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import type { WalletReport } from '@/lib/explorer/types';
 import type { Language } from '@/types';
@@ -24,7 +24,6 @@ import type { Language } from '@/types';
 function ExplorerInner() {
   const router = useRouter();
   const params = useSearchParams();
-  const { theme, toggle } = useTheme();
   const { user } = useAuth();
 
   const [address, setAddress] = useState<string | null>(null);
@@ -80,45 +79,7 @@ function ExplorerInner() {
     <div className="min-h-screen flex flex-col relative">
       <AtmosphereBackground variant="explorer" />
 
-      {/* Header */}
-      <header className="app-header flex-shrink-0 px-4 py-3 flex items-center justify-between gap-4 relative z-20">
-        <div className="flex items-center gap-2">
-          <button onClick={() => router.push('/')} className="flex items-center gap-1.5">
-            <span className="text-xl">⛓</span>
-            <span className="font-bold tracking-tight text-sm hidden sm:block" style={{ color: 'var(--text)' }}>
-              ChainPulse
-            </span>
-          </button>
-          <span className="text-xs px-2 py-0.5 rounded-md font-mono"
-            style={{ background: 'rgba(99,102,241,.15)', color: '#a5b4fc' }}>
-            Explorer
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          {user && (
-            <button onClick={() => router.push('/dashboard')}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl glass-panel text-xs font-medium transition-all hover:opacity-80"
-              style={{ color: 'var(--text-muted)' }}>
-              <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
-                style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
-                {user.username[0].toUpperCase()}
-              </span>
-              {user.username}
-            </button>
-          )}
-          <button onClick={() => router.push('/app')}
-            className="px-3 py-1.5 rounded-xl text-xs glass-panel transition-all hover:opacity-80"
-            style={{ color: 'var(--text-muted)' }}>
-            Console
-          </button>
-          <button onClick={toggle}
-            className="w-8 h-8 rounded-xl flex items-center justify-center glass-panel transition-all hover:scale-105"
-            style={{ color: 'var(--text-muted)' }}
-            title="Toggle theme">
-            {theme === 'dark' ? '☀️' : '🌙'}
-          </button>
-        </div>
-      </header>
+      <AppHeader surface="explorer" />
 
       <main className="flex-1 px-4 py-8 relative z-10">
         <GlassDisc visible={!address && !loading} />

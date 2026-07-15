@@ -34,19 +34,6 @@ export default function QueryInput({ lang, query, setQuery, onSubmit, isLoading,
         disabled={disabled}
       />
 
-      <div className="flex flex-wrap gap-2 chip-stagger">
-        {QUICK_CHIPS[lang].map((chip) => (
-          <button
-            key={chip}
-            onClick={() => { setQuery(chip); onSubmit(chip); }}
-            disabled={isLoading}
-            className="text-xs px-3 py-1.5 rounded-full glass-panel transition-all duration-150 disabled:opacity-40 hover:scale-[1.03]"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            {chip}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
