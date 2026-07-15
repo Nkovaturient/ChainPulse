@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { X, Check, Zap, Lock, Sparkles } from 'lucide-react';
 import { PLAN_CATALOG, type PlanDef } from '@/lib/tier';
 import type { PlansModalReason } from '@/contexts/PlansModalContext';
+import { loadRazorpayScript } from '@/lib/billing/razorpay-checkout';
 
 interface BillingStatus {
   premiumActive: boolean;
@@ -16,6 +17,16 @@ interface BillingStatus {
     unlimited: boolean;
     remaining: number | null;
   };
+}
+
+interface CheckoutOrderResponse {
+  order_id: string;
+  amount: number | string;
+  currency: string;
+  key_id: string;
+  plan: string;
+  prefill?: { name?: string; email?: string };
+  error?: string;
 }
 
 interface Props {
@@ -132,7 +143,7 @@ function PlanCard({
               : 'linear-gradient(135deg, #6366f1, #8b5cf6 55%, #7c3aed)',
           }}
         >
-          {loading ? 'Redirecting…' : `Get ${plan.name}`}
+          {loading ? 'Opening checkout…' : `Get ${plan.name}`}
         </button>
       )}
       {isCurrent && !isFree && (
@@ -151,29 +162,99 @@ function PlanCard({
 export default function PlansModal({ reason, onClose }: Props) {
   const [status, setStatus] = useState<BillingStatus | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
 
-  useEffect(() => {
-    fetch('/api/billing/status')
+  const refreshStatus = useCallback(() => {
+    return fetch('/api/billing/status')
       .then((r) => r.json())
       .then((d: BillingStatus) => setStatus(d))
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    void refreshStatus();
+  }, [refreshStatus]);
+
   const handleUpgrade = useCallback(async (planId: string) => {
     setCheckoutLoading(true);
+    setPaymentError(null);
+
     try {
       const res = await fetch('/api/billing/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: planId, cancelUrl: window.location.href }),
+        body: JSON.stringify({ plan: planId }),
       });
-      const data = (await res.json()) as { url?: string; error?: string };
-      if (data.url) window.location.href = data.url;
-      else setCheckoutLoading(false);
+      const data = (await res.json()) as CheckoutOrderResponse;
+
+      if (!res.ok || !data.order_id) {
+        setPaymentError(data.error ?? 'Could not start checkout.');
+        setCheckoutLoading(false);
+        return;
+      }
+
+      const loaded = await loadRazorpayScript();
+      if (!loaded || !window.Razorpay) {
+        setPaymentError('Payment checkout failed to load.');
+        setCheckoutLoading(false);
+        return;
+      }
+
+      const planDef = PLAN_CATALOG.find((p) => p.id === planId);
+      const publicKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ?? data.key_id;
+
+      const rzp = new window.Razorpay({
+        key: publicKey,
+        order_id: data.order_id,
+        amount: data.amount,
+        currency: data.currency,
+        name: 'ChainPulse',
+        description: planDef?.name ?? planId,
+        prefill: data.prefill,
+        handler: async (response) => {
+          try {
+            const verifyRes = await fetch('/api/billing/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                plan: planId,
+              }),
+            });
+            const verifyData = (await verifyRes.json()) as { ok?: boolean; error?: string };
+            if (!verifyRes.ok || !verifyData.ok) {
+              setPaymentError(verifyData.error ?? 'Payment verification failed.');
+              return;
+            }
+            setPaymentSuccess(true);
+            await refreshStatus();
+          } catch {
+            setPaymentError('Payment verification failed. Please contact support if charged.');
+          } finally {
+            setCheckoutLoading(false);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setCheckoutLoading(false);
+          },
+        },
+      });
+
+      rzp.on('payment.failed', (response) => {
+        setPaymentError(response.error?.description ?? 'Payment failed.');
+        setCheckoutLoading(false);
+      });
+
+      rzp.open();
     } catch {
+      setPaymentError('Could not open checkout.');
       setCheckoutLoading(false);
     }
-  }, []);
+  }, [refreshStatus]);
 
   const isCurrent = useCallback((planId: PlanDef['id']): boolean => {
     if (!status) return planId === 'free';
@@ -210,8 +291,11 @@ export default function PlansModal({ reason, onClose }: Props) {
               ChainPulse Plans
             </p>
             <p className="text-lg sm:text-xl font-medium leading-snug" style={{ color: 'var(--text)' }}>
-              {REASON_COPY[reason]}
+              {paymentSuccess ? 'Payment successful — your plan is now active.' : REASON_COPY[reason]}
             </p>
+            {paymentError && (
+              <p className="text-xs text-red-400">{paymentError}</p>
+            )}
             {(status?.premiumExpiresAt || status?.eliteExpiresAt) && (
               <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
                 {status?.premiumExpiresAt && (
@@ -254,7 +338,7 @@ export default function PlansModal({ reason, onClose }: Props) {
           className="text-xs text-center pb-8 px-6"
           style={{ color: 'var(--text-muted)', opacity: 0.5 }}
         >
-          One-time payment · No auto-renewal · No wallet connection required
+          One-time payment · No auto-renewal · No wallet connection required · INR via Razorpay
         </p>
       </div>
     </div>

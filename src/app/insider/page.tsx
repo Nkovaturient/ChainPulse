@@ -198,7 +198,7 @@ export default function InsiderPage() {
                 boxShadow: '0 8px 28px rgba(202,138,4,.35)',
               }}
             >
-              Get Elite access — $100 / 4 months
+              Get Elite access — ₹8,300 / 4 months
             </button>
 
             <div className="pt-4 border-t space-y-4" style={{ borderColor: 'rgba(255,255,255,.08)' }}>

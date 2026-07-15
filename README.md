@@ -180,7 +180,10 @@ npm run dev
 
 **Required:** `DATABASE_URL`, `JWT_SECRET`, `ANTHROPIC_API_KEY`  
 **Recommended:** `COINGECKO_API_KEY`, `ETHERSCAN_API_KEY`  
+**Billing (Razorpay):** `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `NEXT_PUBLIC_RAZORPAY_KEY_ID`, `RAZORPAY_WEBHOOK_SECRET`  
 **Optional:** `WISPR_API_KEY` (voice input — `fl-…` from Wispr Flow developers)
+
+**Razorpay checkout:** Premium ₹4,150 / 6 mo · Elite ₹8,300 / 4 mo — Standard Checkout modal via `POST /api/billing/checkout` → verify at `POST /api/billing/verify`. Webhook backup: `POST /api/billing/webhook` (`payment.captured`). Register webhook URL in Razorpay Dashboard for production.
 
 ---
 

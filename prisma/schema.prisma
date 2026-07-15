@@ -35,17 +35,17 @@ model User {
 }
 
 model Purchase {
-  id              String   @id @default(uuid()) @db.Uuid
-  userId          String   @map("user_id") @db.Uuid
-  plan            String   // 'premium' | 'elite'
-  stripeSessionId String   @unique @map("stripe_session_id")
-  stripeCustomerId String? @map("stripe_customer_id")
-  amountCents     Int      @map("amount_cents")
-  periodMonths    Int      @map("period_months")
-  startedAt       DateTime @map("started_at") @db.Timestamptz(6)
-  expiresAt       DateTime @map("expires_at") @db.Timestamptz(6)
-  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  plan              String   // 'premium' | 'elite'
+  razorpayOrderId   String   @unique @map("razorpay_order_id")
+  razorpayPaymentId String?  @unique @map("razorpay_payment_id")
+  amountPaise       Int      @map("amount_paise")
+  periodMonths      Int      @map("period_months")
+  startedAt         DateTime @map("started_at") @db.Timestamptz(6)
+  expiresAt         DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("purchases")
   @@index([userId], map: "purchases_user_idx")

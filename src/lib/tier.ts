@@ -47,7 +47,7 @@ export const PLAN_CATALOG: PlanDef[] = [
   {
     id: 'free',
     name: 'Free',
-    price: '$0',
+    price: '₹0',
     period: 'forever',
     bullets: [
       '10 messages / 24h (console + explorer)',
@@ -60,7 +60,7 @@ export const PLAN_CATALOG: PlanDef[] = [
   {
     id: 'premium',
     name: 'Premium',
-    price: '$50',
+    price: '₹4,150',
     period: '6 months',
     bullets: [
       '100 messages / 24h (console + explorer)',
@@ -72,7 +72,7 @@ export const PLAN_CATALOG: PlanDef[] = [
   {
     id: 'elite',
     name: 'Elite — Insider Bot',
-    price: '$100',
+    price: '₹8,300',
     period: '4 months',
     bullets: [
       'Unlimited messages across all surfaces',

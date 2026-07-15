@@ -50,13 +50,6 @@ export default function DashboardPage() {
       .catch(() => {});
   }, []);
 
-  // Show success toast if redirected back from Stripe
-  useEffect(() => {
-    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('checkout') === 'success') {
-      window.history.replaceState({}, '', '/dashboard');
-    }
-  }, []);
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)' }}>
