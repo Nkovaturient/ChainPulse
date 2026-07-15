@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { safePostAuthPath } from '@/lib/auth-redirect';
 
 function GoogleIcon() {
@@ -36,34 +35,18 @@ export default function GoogleSignInButton({ next, disabled }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleClick = async () => {
+  const handleClick = () => {
     setLoading(true);
     setError('');
-    try {
-      const supabase = createClient();
-      const dest = safePostAuthPath(next, '/dashboard');
-      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(dest)}`;
-
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo },
-      });
-
-      if (oauthError) {
-        setError(oauthError.message);
-        setLoading(false);
-      }
-    } catch {
-      setError('Could not start Google sign-in. Check your connection and try again.');
-      setLoading(false);
-    }
+    const dest = safePostAuthPath(next, '/dashboard');
+    window.location.href = `/api/auth/google?next=${encodeURIComponent(dest)}`;
   };
 
   return (
     <div className="space-y-2">
       <button
         type="button"
-        onClick={() => void handleClick()}
+        onClick={handleClick}
         disabled={disabled || loading}
         className="w-full py-3 rounded-xl font-medium text-sm text-white border transition-all disabled:opacity-40 flex items-center justify-center gap-3"
         style={{

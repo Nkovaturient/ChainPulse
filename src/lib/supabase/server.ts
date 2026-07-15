@@ -1,20 +1,16 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-
-function supabaseEnv() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_ANON_KEY;
-  if (!url || !key) {
-    throw new Error('SUPABASE_URL and SUPABASE_ANON_KEY must be set');
-  }
-  return { url, key };
-}
+import { getSupabaseEnv } from '@/lib/supabase/env';
 
 export async function createClient() {
-  const cookieStore = await cookies();
-  const { url, key } = supabaseEnv();
+  const env = getSupabaseEnv();
+  if (!env) {
+    throw new Error('SUPABASE_URL and SUPABASE_ANON_KEY must be set');
+  }
 
-  return createServerClient(url, key, {
+  const cookieStore = await cookies();
+
+  return createServerClient(env.url, env.key, {
     cookies: {
       getAll() {
         return cookieStore.getAll();

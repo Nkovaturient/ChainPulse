@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { attachSessionCookie, signToken } from '@/lib/auth';
 import { safePostAuthPath } from '@/lib/auth-redirect';
 import { attachOAuthPendingCookie } from '@/lib/oauth-pending';
+import { getSupabaseEnv } from '@/lib/supabase/env';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -25,14 +26,13 @@ export async function GET(request: Request) {
     return oauthErrorRedirect(origin, 'missing_code');
   }
 
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_ANON_KEY;
-  if (!url || !key) {
+  const env = getSupabaseEnv();
+  if (!env) {
     return oauthErrorRedirect(origin, 'config');
   }
 
   const cookieStore = await cookies();
-  const supabase = createServerClient(url, key, {
+  const supabase = createServerClient(env.url, env.key, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
