@@ -1,78 +1,109 @@
 'use client';
 
-import { useRef, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
 const COUNT = 1000;
 
-function ParticleField() {
-  const pointsRef = useRef<THREE.Points>(null);
-  const mouse = useRef({ x: 0, y: 0 });
+export default function EliteAmbientScene() {
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const [positions, colors] = useMemo(() => {
-    const pos = new Float32Array(COUNT * 3);
-    const col = new Float32Array(COUNT * 3);
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 100);
+    camera.position.z = 8;
+
+    const renderer = new THREE.WebGLRenderer({
+      antialias: false,
+      alpha: true,
+      powerPreference: 'low-power',
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    renderer.setClearColor(0x000000, 0);
+    container.appendChild(renderer.domElement);
+
+    const positions = new Float32Array(COUNT * 3);
+    const colors = new Float32Array(COUNT * 3);
     const gold = new THREE.Color('#eab308');
     const purple = new THREE.Color('#6366f1');
 
     for (let i = 0; i < COUNT; i++) {
-      pos[i * 3] = (Math.random() - 0.5) * 24;
-      pos[i * 3 + 1] = (Math.random() - 0.5) * 14;
-      pos[i * 3 + 2] = (Math.random() - 0.5) * 12;
+      positions[i * 3] = (Math.random() - 0.5) * 24;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 14;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 12;
 
-      const mix = Math.random();
-      const c = gold.clone().lerp(purple, mix * 0.65);
-      col[i * 3] = c.r;
-      col[i * 3 + 1] = c.g;
-      col[i * 3 + 2] = c.b;
+      const c = gold.clone().lerp(purple, Math.random() * 0.65);
+      colors[i * 3] = c.r;
+      colors[i * 3 + 1] = c.g;
+      colors[i * 3 + 2] = c.b;
     }
-    return [pos, col];
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    const material = new THREE.PointsMaterial({
+      size: 0.055,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.32,
+      sizeAttenuation: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+
+    const points = new THREE.Points(geometry, material);
+    scene.add(points);
+
+    const mouse = { x: 0, y: 0 };
+    const onPointerMove = (e: PointerEvent) => {
+      const rect = container.getBoundingClientRect();
+      const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const ny = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      mouse.x = nx * 0.5;
+      mouse.y = ny * 0.5;
+    };
+    container.addEventListener('pointermove', onPointerMove);
+
+    const timer = new THREE.Timer();
+    timer.connect(document);
+
+    const resize = () => {
+      const { clientWidth, clientHeight } = container;
+      if (!clientWidth || !clientHeight) return;
+      camera.aspect = clientWidth / clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(clientWidth, clientHeight, false);
+    };
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(container);
+
+    let frameId = 0;
+    const animate = (timestamp: number) => {
+      frameId = requestAnimationFrame(animate);
+      timer.update(timestamp);
+      const t = timer.getElapsed();
+      points.rotation.y = t * 0.015 + mouse.x * 0.08;
+      points.rotation.x = Math.sin(t * 0.1) * 0.04 + mouse.y * 0.05;
+      renderer.render(scene, camera);
+    };
+    frameId = requestAnimationFrame(animate);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      ro.disconnect();
+      container.removeEventListener('pointermove', onPointerMove);
+      timer.dispose();
+      geometry.dispose();
+      material.dispose();
+      renderer.dispose();
+      container.removeChild(renderer.domElement);
+    };
   }, []);
 
-  useFrame((state) => {
-    const pts = pointsRef.current;
-    if (!pts) return;
-    const t = state.clock.elapsedTime;
-    pts.rotation.y = t * 0.015 + mouse.current.x * 0.08;
-    pts.rotation.x = Math.sin(t * 0.1) * 0.04 + mouse.current.y * 0.05;
-  });
-
-  return (
-    <group
-      onPointerMove={(e) => {
-        mouse.current.x = (e.pointer.x ?? 0) * 0.5;
-        mouse.current.y = (e.pointer.y ?? 0) * 0.5;
-      }}
-    >
-      <points ref={pointsRef}>
-        <bufferGeometry>
-          <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-          <bufferAttribute attach="attributes-color" args={[colors, 3]} />
-        </bufferGeometry>
-        <pointsMaterial
-          size={0.055}
-          vertexColors
-          transparent
-          opacity={0.32}
-          sizeAttenuation
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-        />
-      </points>
-    </group>
-  );
-}
-
-export default function EliteAmbientScene() {
-  return (
-    <Canvas
-      camera={{ position: [0, 0, 8], fov: 55 }}
-      dpr={[1, 1.5]}
-      gl={{ antialias: false, alpha: true, powerPreference: 'low-power' }}
-      style={{ width: '100%', height: '100%' }}
-    >
-      <ParticleField />
-    </Canvas>
-  );
+  return <div ref={containerRef} className="h-full w-full" aria-hidden />;
 }

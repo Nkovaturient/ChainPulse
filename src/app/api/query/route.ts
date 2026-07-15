@@ -44,7 +44,7 @@ export async function POST(req: Request) {
   const user = await getSessionUser();
   let sessionId = incomingSessionId ?? null;
   if (user && !sessionId) {
-    const s = await createSession(user.sub);
+    const s = await createSession(user.sub, 'New chat', 'console');
     sessionId = s.id;
   }
 

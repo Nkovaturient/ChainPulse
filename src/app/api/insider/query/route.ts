@@ -1,9 +1,21 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import {
+  addMessage,
+  autoTitleSession,
+  createSession,
+  getRecentContext,
+  getSessionSummary,
+  verifySessionOwnership,
+} from '@/lib/chat-storage';
 import { computeEntitlements } from '@/lib/tier';
 import { checkAndConsumeQuota } from '@/lib/rate-limit';
+import { getRecentAlerts } from '@/lib/insider/alerts';
 import { runInsiderAgentLoop } from '@/lib/insider/agent';
+import { classifyInsiderIntent } from '@/lib/insider/router';
+import { maybeRefreshSessionSummary } from '@/lib/insider/session-summary';
+import { synthesizeInsiderFromAlerts } from '@/lib/insider/synthesizer';
 import { hasInsiderAccess } from '@/lib/insider/access';
 import type { Language } from '@/types';
 
@@ -36,13 +48,60 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as {
     query?: string;
     language?: Language;
-    history?: Array<{ role: 'user' | 'assistant'; text: string }>;
+    sessionId?: string;
   };
-  const { query, language = 'en', history = [] } = body;
+  const { query, language = 'en', sessionId: incomingSessionId } = body;
   if (!query || typeof query !== 'string' || query.length > 500) {
     return NextResponse.json({ error: 'Invalid query.' }, { status: 400 });
   }
 
-  const result = await runInsiderAgentLoop(query, language, history);
-  return NextResponse.json({ summary: result.summary, data: result.data, errors: result.errors });
+  let sessionId = incomingSessionId ?? null;
+  if (sessionId) {
+    const ok = await verifySessionOwnership(sessionId, session.sub, 'insider');
+    if (!ok) return NextResponse.json({ error: 'Session not found.' }, { status: 404 });
+  } else {
+    const created = await createSession(session.sub, 'New chat', 'insider');
+    sessionId = created.id;
+  }
+
+  const history = await getRecentContext(sessionId, 4);
+  const sessionSummary = await getSessionSummary(sessionId);
+
+  await addMessage(sessionId, 'user', query);
+  if (history.length === 0) await autoTitleSession(sessionId, query);
+
+  const route = await classifyInsiderIntent(query);
+  const lang: Language = route.language || language;
+
+  let summary: string;
+  let data: Awaited<ReturnType<typeof runInsiderAgentLoop>>['data'] = {};
+  let errors: Record<string, string> = {};
+  let mode: 'simple' | 'complex' = route.complexity;
+
+  if (route.complexity === 'simple') {
+    const alerts = await getRecentAlerts();
+    try {
+      summary = await synthesizeInsiderFromAlerts(query, alerts, lang, history);
+    } catch (err) {
+      errors.synthesize = err instanceof Error ? err.message : 'synthesis failed';
+      summary = '';
+    }
+  } else {
+    const result = await runInsiderAgentLoop(query, lang, history, { sessionSummary });
+    summary = result.summary;
+    data = result.data;
+    errors = result.errors;
+  }
+
+  const stored = await addMessage(sessionId, 'assistant', summary || '(no response)');
+  await maybeRefreshSessionSummary(sessionId);
+
+  return NextResponse.json({
+    summary,
+    data,
+    errors,
+    sessionId,
+    assistantMessageId: stored.id,
+    mode,
+  });
 }

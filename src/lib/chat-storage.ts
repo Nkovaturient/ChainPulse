@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import { Prisma } from '@prisma/client';
+import type { ChatSurface } from '@/lib/agent-config';
 import type { QueryResponse } from '@/types';
 
 export type FeedbackValue = 'up' | 'down' | null;
@@ -18,27 +19,65 @@ export interface StoredSession {
   id: string;
   userId: string;
   title: string;
+  surface: ChatSurface;
+  summary: string | null;
+  summaryUpdatedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
   messages?: StoredMessage[];
 }
 
+function mapSession(row: {
+  id: string;
+  userId: string;
+  title: string;
+  surface: string;
+  summary: string | null;
+  summaryUpdatedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}): StoredSession {
+  return {
+    ...row,
+    surface: row.surface as ChatSurface,
+  };
+}
+
 // ── Sessions ──────────────────────────────────────────────────────────────────
 
-export async function listSessions(userId: string): Promise<StoredSession[]> {
+export async function listSessions(
+  userId: string,
+  surface: ChatSurface = 'console',
+): Promise<StoredSession[]> {
   const rows = await prisma.chatSession.findMany({
-    where: { userId },
+    where: { userId, surface },
     orderBy: { updatedAt: 'desc' },
     take: 50,
   });
-  return rows as StoredSession[];
+  return rows.map(mapSession);
 }
 
-export async function createSession(userId: string, title = 'New chat'): Promise<StoredSession> {
+export async function createSession(
+  userId: string,
+  title = 'New chat',
+  surface: ChatSurface = 'console',
+): Promise<StoredSession> {
   const session = await prisma.chatSession.create({
-    data: { userId, title },
+    data: { userId, title, surface },
   });
-  return session as StoredSession;
+  return mapSession(session);
+}
+
+export async function verifySessionOwnership(
+  sessionId: string,
+  userId: string,
+  surface?: ChatSurface,
+): Promise<boolean> {
+  const session = await prisma.chatSession.findFirst({
+    where: { id: sessionId, userId, ...(surface ? { surface } : {}) },
+    select: { id: true },
+  });
+  return session !== null;
 }
 
 export async function renameSession(id: string, userId: string, title: string): Promise<void> {
@@ -52,10 +91,56 @@ export async function deleteSession(id: string, userId: string): Promise<void> {
   await prisma.chatSession.deleteMany({ where: { id, userId } });
 }
 
+export async function getSessionSummary(sessionId: string): Promise<string | null> {
+  const session = await prisma.chatSession.findUnique({
+    where: { id: sessionId },
+    select: { summary: true },
+  });
+  return session?.summary ?? null;
+}
+
+export async function setSessionSummary(sessionId: string, summary: string): Promise<void> {
+  await prisma.chatSession.update({
+    where: { id: sessionId },
+    data: { summary, summaryUpdatedAt: new Date() },
+  });
+}
+
+export async function countSessionMessages(sessionId: string): Promise<number> {
+  return prisma.chatMessage.count({ where: { sessionId } });
+}
+
+export async function getMessagesForSummary(
+  sessionId: string,
+  excludeLastN: number,
+  maxMessages: number,
+): Promise<StoredMessage[]> {
+  const all = await prisma.chatMessage.findMany({
+    where: { sessionId },
+    orderBy: { createdAt: 'asc' },
+    select: {
+      id: true,
+      sessionId: true,
+      role: true,
+      text: true,
+      dataJson: true,
+      feedback: true,
+      createdAt: true,
+    },
+  });
+  const older = all.slice(0, Math.max(0, all.length - excludeLastN));
+  const capped = older.slice(-maxMessages);
+  return capped.map((r) => ({
+    ...r,
+    role: r.role as 'user' | 'assistant',
+    dataJson: r.dataJson as QueryResponse | null,
+    feedback: (r.feedback as FeedbackValue) ?? null,
+  }));
+}
+
 // ── Messages ──────────────────────────────────────────────────────────────────
 
 export async function getMessages(sessionId: string, userId: string): Promise<StoredMessage[]> {
-  // Verify ownership first
   const session = await prisma.chatSession.findFirst({ where: { id: sessionId, userId } });
   if (!session) return [];
 
@@ -82,7 +167,6 @@ export async function addMessage(
     prisma.chatMessage.create({
       data: { sessionId, role, text, dataJson: safeJson },
     }),
-    // Bump session updatedAt
     prisma.chatSession.update({
       where: { id: sessionId },
       data: { updatedAt: new Date() },
@@ -96,13 +180,11 @@ export async function addMessage(
   };
 }
 
-/** Set or clear thumbs feedback on an assistant message. Verifies ownership via session join. */
 export async function setFeedback(
   messageId: string,
   userId: string,
   value: FeedbackValue,
 ): Promise<boolean> {
-  // Ensure the message belongs to a session this user owns
   const msg = await prisma.chatMessage.findFirst({
     where: { id: messageId, session: { userId } },
     select: { id: true },
@@ -116,13 +198,11 @@ export async function setFeedback(
   return true;
 }
 
-/** Auto-generate a title from the first user message (≤ 40 chars). */
 export async function autoTitleSession(sessionId: string, firstUserText: string): Promise<void> {
   const title = firstUserText.length > 40 ? firstUserText.slice(0, 38) + '…' : firstUserText;
   await prisma.chatSession.update({ where: { id: sessionId }, data: { title } });
 }
 
-/** Return last N messages (text only) for context injection into the AI. */
 export async function getRecentContext(
   sessionId: string,
   limit = 4,

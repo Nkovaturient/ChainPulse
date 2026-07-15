@@ -27,6 +27,8 @@ export async function GET() {
     wallets,
     limit: walletTrackLimit(ent),
     premiumActive: ent.premiumActive,
+    eliteActive: ent.eliteActive,
+    watchlistExpanded: ent.premiumActive || ent.eliteActive,
   });
 }
 

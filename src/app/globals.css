@@ -731,11 +731,12 @@ textarea { resize: none; }
 }
 
 .insider-shell {
-  --insider-sidebar-width: 0px;
+  --app-header-height: 3.25rem;
 }
 
-.insider-shell__main {
-  margin-right: var(--insider-sidebar-width);
+.insider-session-sidebar {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 /* ─── Elite ambient fallback (no WebGL) ─── */

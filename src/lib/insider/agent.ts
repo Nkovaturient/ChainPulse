@@ -1,13 +1,17 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { TOOL_DEFS, executeTool } from '@/lib/agent-tools';
-import { buildInsiderSystem } from '@/lib/agent-prompts';
-import { MODELS, TOKEN_BUDGETS, CONTEXT_LIMITS } from '@/lib/agent-config';
+import { buildInsiderSystem } from '@/lib/insider/system-prompt';
+import { MODELS, TOKEN_BUDGETS, INSIDER_LIMITS } from '@/lib/agent-config';
 import { trimHistoryForModel } from '@/lib/history-context';
 import type { HistoryTurn } from '@/lib/summarizer';
 import type { Language, QueryResponse } from '@/types';
 
 function getClient() {
   return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+}
+
+export interface InsiderRunOptions {
+  sessionSummary?: string | null;
 }
 
 export interface InsiderRunResult {
@@ -17,13 +21,38 @@ export interface InsiderRunResult {
   iterations: number;
 }
 
+function buildCachedSystemBlocks(
+  language: Language,
+  sessionSummary?: string | null,
+): Anthropic.MessageCreateParams['system'] {
+  const langName = language === 'hi' ? 'Hindi' : language === 'bn' ? 'Bengali' : 'English';
+  const blocks: Anthropic.TextBlockParam[] = [
+    {
+      type: 'text',
+      text: buildInsiderSystem(langName),
+      cache_control: { type: 'ephemeral' },
+    },
+  ];
+  if (sessionSummary?.trim()) {
+    blocks.push({
+      type: 'text',
+      text: `\n\nPRIOR SESSION CONTEXT (conversation memory — not live market data):\n${sessionSummary.trim()}`,
+    });
+  }
+  return blocks;
+}
+
 export async function runInsiderAgentLoop(
   query: string,
   language: Language,
   history: HistoryTurn[] = [],
+  options: InsiderRunOptions = {},
 ): Promise<InsiderRunResult> {
   const client = getClient();
-  const trimmed = trimHistoryForModel(history);
+  const trimmed = trimHistoryForModel(history, {
+    historyTurns: INSIDER_LIMITS.historyTurns,
+    historyCharsPerTurn: INSIDER_LIMITS.historyCharsPerTurn,
+  });
   const historyMessages: Anthropic.MessageParam[] = trimmed.map((h) => ({
     role: h.role,
     content: h.text,
@@ -38,16 +67,18 @@ export async function runInsiderAgentLoop(
   const errors: Record<string, string> = {};
   let summary = '';
   let iterations = 0;
-  const MAX_ITERATIONS = CONTEXT_LIMITS.maxAgentIterations;
+  const MAX_ITERATIONS = INSIDER_LIMITS.maxAgentIterations;
+  const system = buildCachedSystemBlocks(language, options.sessionSummary);
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     iterations = i + 1;
     let response: Anthropic.Message;
     try {
       response = await client.messages.create({
-        model: MODELS.agent,
-        max_tokens: TOKEN_BUDGETS.agent,
-        system: buildInsiderSystem(language === 'hi' ? 'Hindi' : language === 'bn' ? 'Bengali' : 'English'),
+        model: MODELS.insider,
+        max_tokens: TOKEN_BUDGETS.insider,
+        thinking: { type: 'disabled' },
+        system,
         tools: TOOL_DEFS,
         messages,
       });

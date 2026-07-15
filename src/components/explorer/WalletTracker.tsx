@@ -26,7 +26,7 @@ export default function WalletTracker({ currentAddress, onInspect }: Props) {
   const { openPlansModal } = usePlansModal();
   const [wallets, setWallets] = useState<TrackedWallet[]>([]);
   const [limit, setLimit] = useState(3);
-  const [premiumActive, setPremiumActive] = useState(false);
+  const [watchlistExpanded, setWatchlistExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +43,7 @@ export default function WalletTracker({ currentAddress, onInspect }: Props) {
       const data = (await res.json()) as {
         wallets?: TrackedWallet[];
         limit?: number;
-        premiumActive?: boolean;
+        watchlistExpanded?: boolean;
         error?: string;
       };
       if (!res.ok) {
@@ -52,7 +52,7 @@ export default function WalletTracker({ currentAddress, onInspect }: Props) {
       }
       setWallets(data.wallets ?? []);
       setLimit(data.limit ?? 3);
-      setPremiumActive(data.premiumActive ?? false);
+      setWatchlistExpanded(data.watchlistExpanded ?? false);
     } catch {
       setError('Network error.');
     } finally {
@@ -65,7 +65,7 @@ export default function WalletTracker({ currentAddress, onInspect }: Props) {
     else {
       setWallets([]);
       setLimit(3);
-      setPremiumActive(false);
+      setWatchlistExpanded(false);
     }
   }, [user, load]);
 
@@ -197,7 +197,7 @@ export default function WalletTracker({ currentAddress, onInspect }: Props) {
             <h3 className="text-sm font-semibold" style={{ color: 'var(--text-read)' }}>Watchlist</h3>
             <p className="text-[11px]" style={{ color: 'var(--text-muted-read)' }}>
               {wallets.length}/{limit}
-              {!premiumActive && (
+              {!watchlistExpanded && (
                 <button
                   type="button"
                   onClick={() => openPlansModal('wallet_limit')}

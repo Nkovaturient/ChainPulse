@@ -117,16 +117,20 @@ model TrackedWallet {
 }
 
 model ChatSession {
-  id        String        @id @default(uuid()) @db.Uuid
-  userId    String        @map("user_id") @db.Uuid
-  title     String        @default("New chat")
-  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages  ChatMessage[]
+  id               String        @id @default(uuid()) @db.Uuid
+  userId           String        @map("user_id") @db.Uuid
+  title            String        @default("New chat")
+  surface          String        @default("console")
+  summary          String?       @db.Text
+  summaryUpdatedAt DateTime?     @map("summary_updated_at") @db.Timestamptz(6)
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages         ChatMessage[]
 
   @@map("chat_sessions")
   @@index([userId, updatedAt(sort: Desc)], map: "chat_sessions_user_updated_idx")
+  @@index([userId, surface, updatedAt(sort: Desc)], map: "chat_sessions_user_surface_updated_idx")
 }
 
 model ChatMessage {

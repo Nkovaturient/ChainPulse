@@ -23,7 +23,7 @@ export function computeEntitlements(user: UserEntitlementFields | null): Entitle
 }
 
 export function walletTrackLimit(ent: Entitlements): number {
-  return ent.premiumActive ? 50 : 3;
+  return ent.premiumActive || ent.eliteActive ? 50 : 3;
 }
 
 /** Returns null for unlimited (Elite), otherwise the rolling-24h cap. */
