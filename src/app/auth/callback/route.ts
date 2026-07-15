@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { prisma } from '@/lib/db';
 import { attachSessionCookie, signToken } from '@/lib/auth';
 import { safePostAuthPath } from '@/lib/auth-redirect';
 import { attachOAuthPendingCookie } from '@/lib/oauth-pending';
 import { getSupabaseEnv } from '@/lib/supabase/env';
+import { createRouteHandlerClient } from '@/lib/supabase/route-handler';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -26,32 +25,23 @@ export async function GET(request: Request) {
     return oauthErrorRedirect(origin, 'missing_code');
   }
 
-  const env = getSupabaseEnv();
-  if (!env) {
+  if (!getSupabaseEnv()) {
     return oauthErrorRedirect(origin, 'config');
   }
 
-  const cookieStore = await cookies();
-  const supabase = createServerClient(env.url, env.key, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          cookieStore.set(name, value, options);
-        });
-      },
-    },
-  });
+  const response = NextResponse.redirect(new URL(next, origin));
+  const client = await createRouteHandlerClient(response);
+  if (!client) {
+    return oauthErrorRedirect(origin, 'config');
+  }
 
-  const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+  const { error: exchangeError } = await client.supabase.auth.exchangeCodeForSession(code);
   if (exchangeError) {
     console.error('[auth/callback] exchangeCodeForSession', exchangeError);
     return oauthErrorRedirect(origin, 'exchange');
   }
 
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  const { data: { user }, error: userError } = await client.supabase.auth.getUser();
   if (userError || !user?.email) {
     console.error('[auth/callback] getUser', userError);
     return oauthErrorRedirect(origin, 'no_email');
@@ -75,9 +65,8 @@ export async function GET(request: Request) {
         role: existing.role,
       });
 
-      const res = NextResponse.redirect(new URL(next, origin));
-      attachSessionCookie(res, token);
-      return res;
+      attachSessionCookie(response, token);
+      return response;
     }
 
     const signupUrl = new URL('/signup', origin);
@@ -86,9 +75,10 @@ export async function GET(request: Request) {
       signupUrl.searchParams.set('next', searchParams.get('next')!);
     }
 
-    const res = NextResponse.redirect(signupUrl);
-    await attachOAuthPendingCookie(res, email);
-    return res;
+    const signupResponse = NextResponse.redirect(signupUrl);
+    client.applyPendingCookies(signupResponse);
+    await attachOAuthPendingCookie(signupResponse, email);
+    return signupResponse;
   } catch (e) {
     console.error('[auth/callback]', e);
     return oauthErrorRedirect(origin, 'server');

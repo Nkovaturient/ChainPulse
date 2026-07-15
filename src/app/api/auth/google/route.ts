@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { getSupabaseEnv } from '@/lib/supabase/env';
 import { safePostAuthPath } from '@/lib/auth-redirect';
+import { createRouteHandlerClient } from '@/lib/supabase/route-handler';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,8 +17,12 @@ export async function GET(req: Request) {
   const next = safePostAuthPath(searchParams.get('next'), '/dashboard');
   const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
 
-  const supabase = createClient(env.url, env.key);
-  const { data, error } = await supabase.auth.signInWithOAuth({
+  const client = await createRouteHandlerClient();
+  if (!client) {
+    return NextResponse.json({ error: 'Google sign-in is not configured on this server.' }, { status: 500 });
+  }
+
+  const { data, error } = await client.supabase.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo, skipBrowserRedirect: true },
   });
@@ -31,5 +35,7 @@ export async function GET(req: Request) {
     );
   }
 
-  return NextResponse.redirect(data.url);
+  const response = NextResponse.redirect(data.url);
+  client.applyPendingCookies(response);
+  return response;
 }
