@@ -28,13 +28,13 @@ export function getRazorpayClient(): Razorpay {
 }
 
 export const PLAN_AMOUNTS_PAISE: Record<BillingPlan, number> = {
-  premium: 415_000,
-  elite: 830_000,
+  premium: 99_900,
+  elite: 249_900,
 };
 
 export const PERIOD_MONTHS: Record<BillingPlan, number> = {
-  premium: 6,
-  elite: 4,
+  premium: 3,
+  elite: 3,
 };
 
 const MIN_AMOUNT_PAISE = 100;
