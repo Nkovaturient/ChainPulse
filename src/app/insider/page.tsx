@@ -122,7 +122,7 @@ function InsiderAlertsSidebar() {
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2.5">
           {alerts.length === 0 && !alertsLoading && (
             <p className="text-sm text-center py-8 leading-relaxed" style={{ color: 'rgba(255,255,255,.55)' }}>
-              No alerts yet for this category. Scanner runs every 15 min.
+              No alerts yet for this category. Scanner runs once per day.
             </p>
           )}
           {alerts.map((alert) => (
