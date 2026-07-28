@@ -732,11 +732,81 @@ textarea { resize: none; }
 
 .insider-shell {
   --app-header-height: 3.25rem;
+  --insider-title-size: 1rem;
+  --insider-body-size: 0.875rem;
+  --insider-chip-size: 0.75rem;
+  --insider-caption-size: 0.75rem;
 }
 
 .insider-session-sidebar {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+}
+
+.insider-alerts-sidebar {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background: rgba(5, 9, 18, 0.55);
+}
+
+.insider-markdown strong {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.insider-glow-card {
+  border: 1px solid rgba(234, 179, 8, 0.28);
+  background: rgba(234, 179, 8, 0.03);
+  transition:
+    border-color 0.3s ease,
+    background 0.3s ease,
+    box-shadow 0.4s ease,
+    transform 0.2s ease;
+}
+
+.insider-glow-card:hover {
+  border-color: rgba(234, 179, 8, 0.5);
+  background: rgba(234, 179, 8, 0.09);
+  box-shadow:
+    0 0 0 1px rgba(234, 179, 8, 0.15),
+    0 0 22px rgba(234, 179, 8, 0.22),
+    0 0 40px rgba(234, 179, 8, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.insider-glow-card:active {
+  transform: scale(0.992);
+  border-color: rgba(234, 179, 8, 0.6);
+  background: rgba(234, 179, 8, 0.12);
+  box-shadow:
+    0 0 0 1px rgba(234, 179, 8, 0.2),
+    0 0 28px rgba(234, 179, 8, 0.28),
+    0 0 48px rgba(234, 179, 8, 0.1);
+}
+
+.insider-glow-card:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px rgba(234, 179, 8, 0.35),
+    0 0 22px rgba(234, 179, 8, 0.2);
+}
+
+.insider-glow-card--selected {
+  border-color: rgba(234, 179, 8, 0.38);
+  background: rgba(234, 179, 8, 0.1);
+  box-shadow:
+    0 0 0 1px rgba(234, 179, 8, 0.12),
+    0 0 14px rgba(234, 179, 8, 0.14);
+}
+
+.insider-glow-card--selected:hover {
+  border-color: rgba(234, 179, 8, 0.55);
+  background: rgba(234, 179, 8, 0.13);
+  box-shadow:
+    0 0 0 1px rgba(234, 179, 8, 0.18),
+    0 0 24px rgba(234, 179, 8, 0.26),
+    0 0 44px rgba(234, 179, 8, 0.1);
 }
 
 /* ─── Elite ambient fallback (no WebGL) ─── */
@@ -760,6 +830,9 @@ textarea { resize: none; }
   .elite-quick-action:hover,
   .elite-dashboard-card:hover,
   .elite-feature-card:hover {
+    transform: none;
+  }
+  .insider-glow-card:active {
     transform: none;
   }
 }

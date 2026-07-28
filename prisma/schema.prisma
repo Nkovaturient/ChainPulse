@@ -80,17 +80,20 @@ model InviteRedemption {
 model InsiderAlert {
   id          String   @id @default(uuid()) @db.Uuid
   chain       String
-  kind        String   // 'whale_tx' | 'large_inflow' | 'unusual_gas'
+  kind        String   // whale_tx | unusual_gas | dex_liquidity | memecoin_momentum | token_unlock | deployer_activity
+  category    String   @default("other") // memecoin | bluechip | defi | ai | other
   address     String
   txHash      String   @unique @map("tx_hash")
   amountUsd   Float?   @map("amount_usd")
   summary     String
   sourceUrl   String?  @map("source_url")
+  metadata    Json?
   detectedAt  DateTime @map("detected_at") @db.Timestamptz(6)
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@map("insider_alerts")
   @@index([detectedAt(sort: Desc)], map: "insider_alerts_detected_idx")
+  @@index([category, detectedAt(sort: Desc)], map: "insider_alerts_category_detected_idx")
 }
 
 model MessageUsage {

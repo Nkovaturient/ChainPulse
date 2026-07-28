@@ -17,7 +17,8 @@ import { classifyInsiderIntent } from '@/lib/insider/router';
 import { maybeRefreshSessionSummary } from '@/lib/insider/session-summary';
 import { synthesizeInsiderFromAlerts } from '@/lib/insider/synthesizer';
 import { hasInsiderAccess } from '@/lib/insider/access';
-import type { Language } from '@/types';
+import { isInsiderCategoryFilter, type InsiderCategoryFilter } from '@/lib/insider/categories';
+import type { InsiderEvidence, Language } from '@/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -49,11 +50,15 @@ export async function POST(req: Request) {
     query?: string;
     language?: Language;
     sessionId?: string;
+    category?: string;
   };
-  const { query, language = 'en', sessionId: incomingSessionId } = body;
+  const { query, language = 'en', sessionId: incomingSessionId, category: rawCategory } = body;
   if (!query || typeof query !== 'string' || query.length > 500) {
     return NextResponse.json({ error: 'Invalid query.' }, { status: 400 });
   }
+
+  const category: InsiderCategoryFilter =
+    rawCategory && isInsiderCategoryFilter(rawCategory) ? rawCategory : 'all';
 
   let sessionId = incomingSessionId ?? null;
   if (sessionId) {
@@ -74,34 +79,40 @@ export async function POST(req: Request) {
   const lang: Language = route.language || language;
 
   let summary: string;
-  let data: Awaited<ReturnType<typeof runInsiderAgentLoop>>['data'] = {};
+  let evidence: InsiderEvidence = { citations: [] };
   let errors: Record<string, string> = {};
   let mode: 'simple' | 'complex' = route.complexity;
 
   if (route.complexity === 'simple') {
-    const alerts = await getRecentAlerts();
+    const alerts = await getRecentAlerts(50, category);
     try {
-      summary = await synthesizeInsiderFromAlerts(query, alerts, lang, history);
+      const result = await synthesizeInsiderFromAlerts(query, alerts, lang, history, category);
+      summary = result.summary;
+      evidence = result.evidence;
     } catch (err) {
       errors.synthesize = err instanceof Error ? err.message : 'synthesis failed';
       summary = '';
     }
   } else {
-    const result = await runInsiderAgentLoop(query, lang, history, { sessionSummary });
+    const result = await runInsiderAgentLoop(query, lang, history, {
+      sessionSummary,
+      category,
+    });
     summary = result.summary;
-    data = result.data;
+    evidence = result.evidence;
     errors = result.errors;
   }
 
-  const stored = await addMessage(sessionId, 'assistant', summary || '(no response)');
+  const stored = await addMessage(sessionId, 'assistant', summary || '(no response)', evidence);
   await maybeRefreshSessionSummary(sessionId);
 
   return NextResponse.json({
     summary,
-    data,
+    evidence,
     errors,
     sessionId,
     assistantMessageId: stored.id,
     mode,
+    category,
   });
 }

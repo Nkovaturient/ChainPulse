@@ -15,7 +15,9 @@ import {
   type ApiChatMessage,
   type ApiChatSession,
 } from '@/lib/chat-client';
+import { useInsiderCategory } from '@/contexts/InsiderCategoryContext';
 import type { FeedbackValue } from '@/lib/chat-storage';
+import type { InsiderEvidence } from '@/types';
 
 export interface InsiderChatMessage {
   id: string;
@@ -24,6 +26,7 @@ export interface InsiderChatMessage {
   createdAt: Date;
   pending?: boolean;
   feedback?: FeedbackValue;
+  evidence?: InsiderEvidence | null;
 }
 
 export interface InsiderChatSession {
@@ -51,6 +54,7 @@ interface InsiderChatContextValue {
 const InsiderChatContext = createContext<InsiderChatContextValue | null>(null);
 
 export function InsiderChatProvider({ children }: { children: React.ReactNode }) {
+  const { category } = useInsiderCategory();
   const [sessions, setSessions] = useState<InsiderChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<InsiderChatMessage[]>([]);
@@ -136,10 +140,11 @@ export function InsiderChatProvider({ children }: { children: React.ReactNode })
       const res = await fetch('/api/insider/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, language: 'en', sessionId: sid }),
+        body: JSON.stringify({ query, language: 'en', sessionId: sid, category }),
       });
       const data = (await res.json()) as {
         summary?: string;
+        evidence?: InsiderEvidence;
         error?: string;
         sessionId?: string;
         assistantMessageId?: string;
@@ -166,6 +171,7 @@ export function InsiderChatProvider({ children }: { children: React.ReactNode })
             id: data.assistantMessageId ?? `${optimisticId}-res`,
             role: 'assistant',
             text: data.summary ?? '(no response)',
+            evidence: data.evidence ?? null,
             feedback: null,
             createdAt: new Date(),
           }),
@@ -190,7 +196,7 @@ export function InsiderChatProvider({ children }: { children: React.ReactNode })
     } finally {
       setBusy(false);
     }
-  }, [activeSessionId, busy, newSession, reloadSessions]);
+  }, [activeSessionId, busy, category, newSession, reloadSessions]);
 
   const setFeedback = useCallback(async (messageId: string, value: FeedbackValue) => {
     const prevValue = messages.find((m) => m.id === messageId)?.feedback ?? null;

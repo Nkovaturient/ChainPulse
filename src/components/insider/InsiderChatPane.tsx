@@ -3,24 +3,24 @@
 import { useEffect, useRef, useState } from 'react';
 import MultilineComposer from '@/components/composer/MultilineComposer';
 import InsiderMessageBubble from '@/components/insider/InsiderMessageBubble';
+import InsiderCategoryChips from '@/components/insider/InsiderCategoryChips';
 import InsiderSessionSidebar, { InsiderSidebarToggle } from '@/components/insider/InsiderSessionSidebar';
 import { useInsiderChat } from '@/contexts/InsiderChatContext';
+import { useInsiderCategory } from '@/contexts/InsiderCategoryContext';
+import { categoryHintPrompts } from '@/lib/insider/categories';
 
 export default function InsiderChatPane() {
   const { messages, messagesLoading, busy, sendMessage } = useInsiderChat();
+  const { category, setCategory } = useInsiderCategory();
   const [input, setInput] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  const hints = categoryHintPrompts(category);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  const hints = [
-    'Which wallets are accumulating ETH right now?',
-    "What's the biggest flow in the last hour?",
-    'Any unusual gas spikes on Ethereum?',
-  ];
 
   return (
     <div className="flex flex-col min-h-0 h-full w-full min-w-0">
@@ -29,14 +29,20 @@ export default function InsiderChatPane() {
         style={{ borderColor: 'rgba(234,179,8,.12)' }}
       >
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold" style={{ color: '#facc15' }}>
+          <p className="text-base font-semibold leading-tight" style={{ color: '#facc15' }}>
             Ask Insider Bot
           </p>
-          <p className="text-[10px] mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-xs mt-1 truncate leading-snug" style={{ color: 'var(--text-muted)' }}>
             Which wallets bought before the last pump? What are whales accumulating?
           </p>
         </div>
-        <InsiderSidebarToggle open={sidebarOpen} onToggle={() => setSidebarOpen((v) => !v)} />
+        {!sidebarOpen && (
+          <InsiderSidebarToggle open={sidebarOpen} onToggle={() => setSidebarOpen(true)} />
+        )}
+      </div>
+
+      <div className="px-4 py-2.5 border-b flex-shrink-0" style={{ borderColor: 'rgba(234,179,8,.08)' }}>
+        <InsiderCategoryChips value={category} onChange={setCategory} />
       </div>
 
       <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
@@ -54,7 +60,7 @@ export default function InsiderChatPane() {
                     key={s}
                     type="button"
                     onClick={() => void sendMessage(s)}
-                    className="text-left text-xs px-3 py-2.5 rounded-xl border transition-all hover:opacity-80"
+                    className="text-left text-sm leading-relaxed px-3.5 py-3 rounded-xl border transition-all hover:opacity-80"
                     style={{
                       background: 'rgba(234,179,8,.04)',
                       borderColor: 'rgba(234,179,8,.12)',
@@ -92,6 +98,7 @@ export default function InsiderChatPane() {
         <InsiderSessionSidebar
           open={sidebarOpen}
           onCloseMobile={() => setSidebarOpen(false)}
+          onToggle={() => setSidebarOpen((v) => !v)}
         />
       </div>
     </div>

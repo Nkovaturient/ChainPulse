@@ -21,9 +21,48 @@ export interface WhaleTransaction {
   from: string;
   to: string;
   value: string;
+  amountNative?: number;
   chain: 'ethereum' | 'solana';
   timestamp: string;
   explorerUrl: string;
+}
+
+export type InsiderAlertKind =
+  | 'whale_tx'
+  | 'unusual_gas'
+  | 'dex_liquidity'
+  | 'memecoin_momentum'
+  | 'token_unlock'
+  | 'deployer_activity';
+
+export type InsiderCategory = 'memecoin' | 'bluechip' | 'defi' | 'ai' | 'other';
+
+export interface InsiderCitation {
+  type: 'alert' | 'tx' | 'price' | 'defi' | 'news' | 'gas';
+  label: string;
+  url?: string;
+  alertId?: string;
+  fetchedAt: string;
+  source: string;
+}
+
+export interface InsiderAlertRef {
+  id: string;
+  chain: string;
+  kind: string;
+  category: string;
+  summary: string;
+  amountUsd: number | null;
+  txHash: string;
+  sourceUrl: string | null;
+  detectedAt: string;
+}
+
+export interface InsiderEvidence {
+  citations: InsiderCitation[];
+  alerts?: InsiderAlertRef[];
+  tools?: Partial<QueryResponse>;
+  category?: InsiderCategory | 'all';
 }
 
 export interface NewsItem {

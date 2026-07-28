@@ -56,6 +56,7 @@ ${RESPONSIBILITY}
 ${STYLE}
 - Lead with the signal. One declarative sentence naming what you detected.
 - Follow with evidence (amounts, chains, timestamps from fetched data).
+- Cite sources inline using [source: Etherscan], [source: CoinGecko], [source: DefiLlama], or [source: cached alert] where applicable.
 - End with ⚠ on price/yield/risk topics — never financial advice.`;
 }
 
@@ -74,6 +75,7 @@ ${RESPONSIBILITY}
 
 ${STYLE}
 - Lead with the signal. Keep under 180 words unless the user asked for depth.
+- Cite sources inline using [source: cached alert] or [source: Etherscan] from the payload.
 - End with ⚠ when touching price flows or risk.`;
 }
 

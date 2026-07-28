@@ -6,7 +6,11 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
-  const provided = new URL(req.url).searchParams.get('secret') ?? req.headers.get('x-cron-secret');
+  const url = new URL(req.url);
+  const provided =
+    url.searchParams.get('secret') ??
+    req.headers.get('x-cron-secret') ??
+    req.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
 
   if (!secret || provided !== secret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

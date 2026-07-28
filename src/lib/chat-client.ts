@@ -1,4 +1,5 @@
 import type { FeedbackValue } from '@/lib/chat-storage';
+import type { InsiderEvidence } from '@/types';
 
 export interface ApiChatSession {
   id: string;
@@ -11,6 +12,7 @@ export interface ApiChatMessage {
   id: string;
   role: string;
   text: string;
+  dataJson?: InsiderEvidence | null;
   feedback?: FeedbackValue;
   createdAt: string;
 }
@@ -32,6 +34,7 @@ export function mapMessagesFromApi(
   id: string;
   role: 'user' | 'assistant';
   text: string;
+  evidence?: InsiderEvidence | null;
   feedback: FeedbackValue;
   createdAt: Date;
 }[] {
@@ -39,6 +42,7 @@ export function mapMessagesFromApi(
     id: m.id,
     role: m.role as 'user' | 'assistant',
     text: m.text,
+    evidence: (m.dataJson as InsiderEvidence | null) ?? null,
     feedback: m.feedback ?? null,
     createdAt: new Date(m.createdAt),
   }));

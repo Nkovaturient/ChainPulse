@@ -1,7 +1,9 @@
 import { prisma } from '@/lib/db';
 import { Prisma } from '@prisma/client';
 import type { ChatSurface } from '@/lib/agent-config';
-import type { QueryResponse } from '@/types';
+import type { QueryResponse, InsiderEvidence } from '@/types';
+
+export type MessageDataJson = QueryResponse | InsiderEvidence | null;
 
 export type FeedbackValue = 'up' | 'down' | null;
 
@@ -10,7 +12,7 @@ export interface StoredMessage {
   sessionId: string;
   role: 'user' | 'assistant';
   text: string;
-  dataJson: QueryResponse | null;
+  dataJson: MessageDataJson;
   feedback: FeedbackValue | null;
   createdAt: Date;
 }
@@ -133,7 +135,7 @@ export async function getMessagesForSummary(
   return capped.map((r) => ({
     ...r,
     role: r.role as 'user' | 'assistant',
-    dataJson: r.dataJson as QueryResponse | null,
+    dataJson: r.dataJson as MessageDataJson,
     feedback: (r.feedback as FeedbackValue) ?? null,
   }));
 }
@@ -151,7 +153,7 @@ export async function getMessages(sessionId: string, userId: string): Promise<St
   return rows.map((r) => ({
     ...r,
     role: r.role as 'user' | 'assistant',
-    dataJson: r.dataJson as QueryResponse | null,
+    dataJson: r.dataJson as MessageDataJson,
     feedback: (r.feedback as FeedbackValue) ?? null,
   }));
 }
@@ -160,7 +162,7 @@ export async function addMessage(
   sessionId: string,
   role: 'user' | 'assistant',
   text: string,
-  dataJson?: QueryResponse | null,
+  dataJson?: MessageDataJson,
 ): Promise<StoredMessage> {
   const safeJson = dataJson ? (dataJson as unknown as Prisma.InputJsonValue) : undefined;
   const [msg] = await prisma.$transaction([
@@ -175,7 +177,7 @@ export async function addMessage(
   return {
     ...msg,
     role: msg.role as 'user' | 'assistant',
-    dataJson: msg.dataJson as QueryResponse | null,
+    dataJson: msg.dataJson as MessageDataJson,
     feedback: (msg.feedback as FeedbackValue) ?? null,
   };
 }

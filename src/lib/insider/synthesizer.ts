@@ -1,10 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { buildInsiderAlertSynthesizerSystem } from '@/lib/insider/system-prompt';
+import { categorySystemNote, type InsiderCategoryFilter } from '@/lib/insider/categories';
+import { buildEvidenceFromAlerts } from '@/lib/insider/citations';
 import { languageName } from '@/lib/agent-prompts';
 import { INSIDER_LIMITS, MODELS, TOKEN_BUDGETS } from '@/lib/agent-config';
 import { trimHistoryForModel } from '@/lib/history-context';
 import type { HistoryTurn } from '@/lib/summarizer';
-import type { Language } from '@/types';
+import type { InsiderEvidence, Language } from '@/types';
 import type { InsiderAlert } from '@prisma/client';
 
 function getClient() {
@@ -28,7 +30,8 @@ export async function synthesizeInsiderFromAlerts(
   alerts: InsiderAlert[],
   language: Language,
   history: HistoryTurn[] = [],
-): Promise<string> {
+  category: InsiderCategoryFilter = 'all',
+): Promise<{ summary: string; evidence: InsiderEvidence }> {
   const trimmed = trimHistoryForModel(history, {
     historyTurns: INSIDER_LIMITS.historyTurns,
     historyCharsPerTurn: INSIDER_LIMITS.historyCharsPerTurn,
@@ -48,7 +51,7 @@ export async function synthesizeInsiderFromAlerts(
     system: [
       {
         type: 'text',
-        text: buildInsiderAlertSynthesizerSystem(langName),
+        text: buildInsiderAlertSynthesizerSystem(langName) + categorySystemNote(category),
         cache_control: { type: 'ephemeral' },
       },
     ],
@@ -62,5 +65,7 @@ export async function synthesizeInsiderFromAlerts(
   });
 
   const block = msg.content.find((b) => b.type === 'text');
-  return block && block.type === 'text' ? block.text.trim() : '';
+  const summary = block && block.type === 'text' ? block.text.trim() : '';
+  const evidence = buildEvidenceFromAlerts(alerts, category === 'all' ? undefined : category);
+  return { summary, evidence };
 }

@@ -7,9 +7,10 @@ import { useInsiderChat } from '@/contexts/InsiderChatContext';
 interface Props {
   open: boolean;
   onCloseMobile: () => void;
+  onToggle: () => void;
 }
 
-export default function InsiderSessionSidebar({ open, onCloseMobile }: Props) {
+export default function InsiderSessionSidebar({ open, onCloseMobile, onToggle }: Props) {
   const { sessions, activeSessionId, sessionsLoading, openSession, newSession, deleteSession } =
     useInsiderChat();
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -42,30 +43,33 @@ export default function InsiderSessionSidebar({ open, onCloseMobile }: Props) {
   const panel = (
     <div className="insider-session-sidebar flex flex-col h-full w-[280px] flex-shrink-0">
       <div
-        className="flex items-center justify-between px-4 py-3 flex-shrink-0 border-b"
+        className="flex items-center justify-between px-4 py-3 flex-shrink-0 border-b gap-2"
         style={{ borderColor: 'rgba(234,179,8,.12)' }}
       >
-        <div className="flex items-center gap-1.5">
-          <Zap size={12} className="text-yellow-400" />
-          <span className="text-xs font-semibold" style={{ color: '#facc15' }}>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <Zap size={12} className="text-yellow-400 flex-shrink-0" />
+          <span className="text-sm font-semibold" style={{ color: '#facc15' }}>
             Chat history
           </span>
         </div>
-        <button
-          type="button"
-          onClick={onCloseMobile}
-          className="lg:hidden w-7 h-7 rounded-lg flex items-center justify-center"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          ✕
-        </button>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <InsiderSidebarToggle open={open} onToggle={onToggle} />
+          <button
+            type="button"
+            onClick={onCloseMobile}
+            className="lg:hidden w-7 h-7 rounded-lg flex items-center justify-center"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
       <div className="px-3 py-3 flex-shrink-0">
         <button
           type="button"
           onClick={() => void handleNew()}
-          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold text-white transition-all hover:opacity-90"
+          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
           style={{
             background: 'linear-gradient(135deg, #eab308, #ca8a04 55%, #a16207)',
             boxShadow: '0 4px 16px rgba(202,138,4,.25)',
@@ -96,23 +100,19 @@ export default function InsiderSessionSidebar({ open, onCloseMobile }: Props) {
             tabIndex={0}
             onClick={() => void handleOpen(s.id)}
             onKeyDown={(e) => e.key === 'Enter' && void handleOpen(s.id)}
-            className="w-full px-3 py-2.5 rounded-xl transition-all group flex items-start gap-2 cursor-pointer select-none"
-            style={{
-              background: activeSessionId === s.id ? 'rgba(234,179,8,.1)' : 'transparent',
-              border:
-                activeSessionId === s.id
-                  ? '1px solid rgba(234,179,8,.25)'
-                  : '1px solid transparent',
-            }}
+            className={[
+              'insider-glow-card w-full px-3 py-2.5 rounded-xl group flex items-start gap-2 cursor-pointer select-none',
+              activeSessionId === s.id ? 'insider-glow-card--selected' : '',
+            ].join(' ').trim()}
           >
             <span className="text-xs mt-0.5 flex-shrink-0" style={{ color: '#facc15', opacity: 0.6 }}>
               ⚡
             </span>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium truncate leading-snug" style={{ color: 'var(--text)' }}>
+              <p className="text-sm font-medium truncate leading-snug" style={{ color: 'var(--text)' }}>
                 {s.title}
               </p>
-              <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
                 {formatDate(s.updatedAt)}
               </p>
             </div>

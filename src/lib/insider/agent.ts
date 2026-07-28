@@ -1,10 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { TOOL_DEFS, executeTool } from '@/lib/agent-tools';
 import { buildInsiderSystem } from '@/lib/insider/system-prompt';
+import { categorySystemNote, type InsiderCategoryFilter } from '@/lib/insider/categories';
+import { buildEvidenceFromAgent } from '@/lib/insider/citations';
 import { MODELS, TOKEN_BUDGETS, INSIDER_LIMITS } from '@/lib/agent-config';
 import { trimHistoryForModel } from '@/lib/history-context';
 import type { HistoryTurn } from '@/lib/summarizer';
-import type { Language, QueryResponse } from '@/types';
+import type { InsiderEvidence, Language, QueryResponse } from '@/types';
 
 function getClient() {
   return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -12,11 +14,13 @@ function getClient() {
 
 export interface InsiderRunOptions {
   sessionSummary?: string | null;
+  category?: InsiderCategoryFilter;
 }
 
 export interface InsiderRunResult {
   summary: string;
   data: Partial<QueryResponse>;
+  evidence: InsiderEvidence;
   errors: Record<string, string>;
   iterations: number;
 }
@@ -24,12 +28,13 @@ export interface InsiderRunResult {
 function buildCachedSystemBlocks(
   language: Language,
   sessionSummary?: string | null,
+  category: InsiderCategoryFilter = 'all',
 ): Anthropic.MessageCreateParams['system'] {
   const langName = language === 'hi' ? 'Hindi' : language === 'bn' ? 'Bengali' : 'English';
   const blocks: Anthropic.TextBlockParam[] = [
     {
       type: 'text',
-      text: buildInsiderSystem(langName),
+      text: buildInsiderSystem(langName) + categorySystemNote(category),
       cache_control: { type: 'ephemeral' },
     },
   ];
@@ -68,7 +73,7 @@ export async function runInsiderAgentLoop(
   let summary = '';
   let iterations = 0;
   const MAX_ITERATIONS = INSIDER_LIMITS.maxAgentIterations;
-  const system = buildCachedSystemBlocks(language, options.sessionSummary);
+  const system = buildCachedSystemBlocks(language, options.sessionSummary, options.category ?? 'all');
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     iterations = i + 1;
@@ -118,7 +123,12 @@ export async function runInsiderAgentLoop(
     messages.push({ role: 'user', content: results });
   }
 
-  return { summary: summary.trim(), data: accumulatedData, errors, iterations };
+  const evidence = buildEvidenceFromAgent(
+    accumulatedData,
+    options.category && options.category !== 'all' ? options.category : undefined,
+  );
+
+  return { summary: summary.trim(), data: accumulatedData, evidence, errors, iterations };
 }
 
 function mergeData(current: Partial<QueryResponse>, patch: Partial<QueryResponse>): Partial<QueryResponse> {

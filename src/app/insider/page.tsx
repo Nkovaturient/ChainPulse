@@ -1,19 +1,24 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Zap, Lock, AlertTriangle, RefreshCw } from 'lucide-react';
 import AtmosphereBackground from '@/components/ui/AtmosphereBackground';
 import EliteAmbientCanvas from '@/components/ui/EliteAmbientCanvas';
 import AppHeader from '@/components/layout/AppHeader';
 import InsiderChatPane from '@/components/insider/InsiderChatPane';
+import InsiderCategoryChips from '@/components/insider/InsiderCategoryChips';
+import InsiderAlertToast from '@/components/insider/InsiderAlertToast';
 import { InsiderChatProvider } from '@/contexts/InsiderChatContext';
+import { InsiderCategoryProvider, useInsiderCategory } from '@/contexts/InsiderCategoryContext';
 import { usePlansModal } from '@/contexts/PlansModalContext';
+import { INSIDER_CATEGORY_LABELS } from '@/lib/insider/categories';
 
 interface Alert {
   id: string;
   chain: string;
   kind: string;
+  category: string;
   address: string;
   txHash: string;
   amountUsd: number | null;
@@ -22,40 +27,219 @@ interface Alert {
   detectedAt: string;
 }
 
+const POLL_MS = 45_000;
+
+function InsiderAlertsSidebar() {
+  const { category, setCategory } = useInsiderCategory();
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [alertsLoading, setAlertsLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const knownIds = useRef<Set<string>>(new Set());
+  const initialLoad = useRef(true);
+
+  const loadAlerts = useCallback(async (silent = false) => {
+    if (!silent) setAlertsLoading(true);
+    try {
+      const qs = category !== 'all' ? `?category=${category}` : '';
+      const res = await fetch(`/api/insider/alerts${qs}`);
+      if (!res.ok) return;
+      const data = (await res.json()) as { alerts: Alert[] };
+      const incoming = data.alerts;
+
+      if (!initialLoad.current) {
+        const newOnes = incoming.filter((a) => !knownIds.current.has(a.id));
+        if (newOnes.length > 0) {
+          const label = category === 'all' ? 'signal' : INSIDER_CATEGORY_LABELS[category].toLowerCase();
+          setToastMessage(
+            `${newOnes.length} new ${label}${newOnes.length === 1 ? '' : 's'}`,
+          );
+        }
+      } else {
+        initialLoad.current = false;
+      }
+
+      knownIds.current = new Set(incoming.map((a) => a.id));
+      setAlerts(incoming);
+      setLastUpdated(new Date());
+    } catch {
+      // ignore
+    } finally {
+      if (!silent) setAlertsLoading(false);
+    }
+  }, [category]);
+
+  useEffect(() => {
+    initialLoad.current = true;
+    knownIds.current = new Set();
+    void loadAlerts();
+  }, [loadAlerts]);
+
+  useEffect(() => {
+    const timer = setInterval(() => void loadAlerts(true), POLL_MS);
+    return () => clearInterval(timer);
+  }, [loadAlerts]);
+
+  return (
+    <>
+      <div
+        className="insider-alerts-sidebar flex flex-col border-b lg:border-b-0 lg:border-r min-h-0 max-h-[38vh] lg:max-h-none lg:w-[min(380px,36%)] lg:max-w-[420px] lg:flex-shrink-0"
+        style={{ borderColor: 'rgba(234,179,8,.12)' }}
+      >
+        <div className="px-4 py-2.5 border-b flex-shrink-0" style={{ borderColor: 'rgba(234,179,8,.08)' }}>
+          <InsiderCategoryChips value={category} onChange={setCategory} />
+        </div>
+
+        <div
+          className="flex items-center justify-between px-5 py-3 border-b flex-shrink-0"
+          style={{ borderColor: 'rgba(234,179,8,.12)' }}
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <AlertTriangle size={16} className="text-yellow-400 flex-shrink-0" />
+            <div className="min-w-0">
+              <span className="text-base font-semibold block" style={{ color: '#fde047' }}>
+                Live Alerts
+              </span>
+              {lastUpdated && (
+                <span className="text-xs block truncate" style={{ color: 'rgba(255,255,255,.65)' }}>
+                  Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => void loadAlerts()}
+            disabled={alertsLoading}
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:opacity-80 hover:bg-yellow-400/15 disabled:opacity-40 flex-shrink-0"
+            style={{ background: 'rgba(234,179,8,.12)', color: '#fde047' }}
+            title="Refresh alerts"
+          >
+            <RefreshCw size={14} className={alertsLoading ? 'animate-spin' : ''} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2.5">
+          {alerts.length === 0 && !alertsLoading && (
+            <p className="text-sm text-center py-8 leading-relaxed" style={{ color: 'rgba(255,255,255,.55)' }}>
+              No alerts yet for this category. Scanner runs every 15 min.
+            </p>
+          )}
+          {alerts.map((alert) => (
+            <div
+              key={alert.id}
+              role={alert.sourceUrl ? 'link' : undefined}
+              tabIndex={alert.sourceUrl ? 0 : undefined}
+              onClick={alert.sourceUrl ? () => window.open(alert.sourceUrl!, '_blank', 'noopener,noreferrer') : undefined}
+              onKeyDown={
+                alert.sourceUrl
+                  ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        window.open(alert.sourceUrl!, '_blank', 'noopener,noreferrer');
+                      }
+                    }
+                  : undefined
+              }
+              className={[
+                'insider-glow-card rounded-xl p-3.5 text-sm space-y-2',
+                alert.sourceUrl ? 'cursor-pointer' : '',
+              ].join(' ').trim()}
+            >
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span
+                    className="font-mono uppercase text-xs font-semibold px-2 py-0.5 rounded"
+                    style={{ background: 'rgba(234,179,8,.2)', color: '#fde047' }}
+                  >
+                    {alert.chain}
+                  </span>
+                  <span
+                    className="text-xs px-2 py-0.5 rounded capitalize font-medium"
+                    style={{ background: 'rgba(255,255,255,.1)', color: 'rgba(255,255,255,.85)' }}
+                  >
+                    {alert.kind.replace(/_/g, ' ')}
+                  </span>
+                </div>
+                <span className="text-sm font-medium tabular-nums" style={{ color: 'rgba(255,255,255,.7)' }}>
+                  {new Date(alert.detectedAt).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+              </div>
+              <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,.92)' }}>
+                {alert.summary}
+              </p>
+              {alert.amountUsd != null && alert.amountUsd > 0 && (
+                <p className="text-sm font-bold" style={{ color: '#fde047' }}>
+                  ~${alert.amountUsd >= 1_000_000
+                    ? `${(alert.amountUsd / 1_000_000).toFixed(1)}M`
+                    : `${(alert.amountUsd / 1000).toFixed(0)}K`}
+                </p>
+              )}
+              {alert.sourceUrl && (
+                <a
+                  href={alert.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1 text-sm font-medium underline-offset-2 transition-colors hover:text-yellow-300"
+                  style={{ color: '#facc15' }}
+                >
+                  View source
+                  {/* <span className="font-mono opacity-80">· {alert.txHash.slice(0, 12)}…</span> */}
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <InsiderAlertToast message={toastMessage} onDismiss={() => setToastMessage(null)} />
+    </>
+  );
+}
+
+function InsiderWorkspace() {
+  return (
+    <div className="h-screen flex flex-col relative overflow-hidden insider-shell">
+      <AtmosphereBackground variant="insider" />
+      <EliteAmbientCanvas />
+      <AppHeader surface="insider" />
+      <main className="flex-1 flex flex-col lg:flex-row min-h-0 relative z-10 overflow-hidden">
+        <InsiderAlertsSidebar />
+        <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+          <InsiderChatPane />
+        </div>
+      </main>
+    </div>
+  );
+}
+
 export default function InsiderPage() {
   const router = useRouter();
   const { openPlansModal } = usePlansModal();
 
   const [access, setAccess] = useState<'loading' | 'locked' | 'granted'>('loading');
-  const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [alertsLoading, setAlertsLoading] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
   const [redeemError, setRedeemError] = useState<string | null>(null);
   const [redeemLoading, setRedeemLoading] = useState(false);
 
-  const loadAlerts = useCallback(async () => {
-    setAlertsLoading(true);
-    try {
-      const res = await fetch('/api/insider/alerts');
-      if (res.status === 403) {
-        setAccess('locked');
-        return;
-      }
-      if (res.ok) {
-        const data = (await res.json()) as { alerts: Alert[] };
-        setAlerts(data.alerts);
-        setAccess('granted');
-      }
-    } catch {
-      // ignore
-    } finally {
-      setAlertsLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    void loadAlerts();
-  }, [loadAlerts]);
+    void (async () => {
+      try {
+        const res = await fetch('/api/insider/alerts');
+        if (res.status === 403) {
+          setAccess('locked');
+          return;
+        }
+        if (res.ok) setAccess('granted');
+      } catch {
+        setAccess('locked');
+      }
+    })();
+  }, []);
 
   const handleRedeem = async () => {
     const code = inviteCode.trim();
@@ -73,7 +257,7 @@ export default function InsiderPage() {
         setRedeemError(data.error ?? 'Redemption failed.');
         return;
       }
-      await loadAlerts();
+      setAccess('granted');
     } catch {
       setRedeemError('Network error. Please try again.');
     } finally {
@@ -199,93 +383,10 @@ export default function InsiderPage() {
   }
 
   return (
-    <InsiderChatProvider>
-      <div className="h-screen flex flex-col relative overflow-hidden insider-shell">
-        <AtmosphereBackground variant="insider" />
-        <EliteAmbientCanvas />
-
-        <AppHeader surface="insider" />
-
-        <main className="flex-1 flex flex-col lg:flex-row min-h-0 relative z-10 overflow-hidden">
-          <div
-            className="flex flex-col border-b lg:border-b-0 lg:border-r min-h-0 max-h-[38vh] lg:max-h-none lg:w-[min(360px,34%)] lg:max-w-[400px] lg:flex-shrink-0"
-            style={{ borderColor: 'rgba(234,179,8,.12)' }}
-          >
-            <div
-              className="flex items-center justify-between px-5 py-3 border-b flex-shrink-0"
-              style={{ borderColor: 'rgba(234,179,8,.12)' }}
-            >
-              <div className="flex items-center gap-2">
-                <AlertTriangle size={14} className="text-yellow-400" />
-                <span className="text-xs font-semibold" style={{ color: '#facc15' }}>
-                  Live Alerts
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => void loadAlerts()}
-                disabled={alertsLoading}
-                className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:opacity-70 disabled:opacity-40"
-                style={{ background: 'rgba(234,179,8,.08)', color: '#facc15' }}
-                title="Refresh alerts"
-              >
-                <RefreshCw size={12} className={alertsLoading ? 'animate-spin' : ''} />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
-              {alerts.length === 0 && !alertsLoading && (
-                <p className="text-xs text-center py-8" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>
-                  No alerts yet. The scanner runs on its configured interval.
-                </p>
-              )}
-              {alerts.map((alert) => (
-                <div
-                  key={alert.id}
-                  className="rounded-xl p-3 border text-xs space-y-1.5"
-                  style={{ background: 'rgba(234,179,8,.04)', borderColor: 'rgba(234,179,8,.12)' }}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span
-                      className="font-mono uppercase text-[10px] px-1.5 py-0.5 rounded"
-                      style={{ background: 'rgba(234,179,8,.12)', color: '#facc15' }}
-                    >
-                      {alert.chain}
-                    </span>
-                    <span style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
-                      {new Date(alert.detectedAt).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </span>
-                  </div>
-                  <p style={{ color: 'var(--text)' }}>{alert.summary}</p>
-                  {alert.amountUsd && (
-                    <p className="font-semibold" style={{ color: '#facc15' }}>
-                      ~${(alert.amountUsd / 1000).toFixed(0)}K
-                    </p>
-                  )}
-                  {alert.sourceUrl && (
-                    <a
-                      href={alert.sourceUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="underline opacity-50 hover:opacity-100 font-mono text-[10px]"
-                      style={{ color: 'var(--text-muted)' }}
-                    >
-                      {alert.txHash.slice(0, 14)}…
-                    </a>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex-1 min-w-0 min-h-0 flex flex-col">
-            <InsiderChatPane />
-          </div>
-        </main>
-      </div>
-    </InsiderChatProvider>
+    <InsiderCategoryProvider>
+      <InsiderChatProvider>
+        <InsiderWorkspace />
+      </InsiderChatProvider>
+    </InsiderCategoryProvider>
   );
 }

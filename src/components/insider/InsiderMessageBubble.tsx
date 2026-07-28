@@ -3,6 +3,7 @@
 import type { InsiderChatMessage } from '@/contexts/InsiderChatContext';
 import { useInsiderChat } from '@/contexts/InsiderChatContext';
 import MarkdownBody from '@/components/MarkdownBody';
+import InsiderCitationBar from '@/components/insider/InsiderCitationBar';
 
 interface Props {
   message: InsiderChatMessage;
@@ -23,8 +24,8 @@ export default function InsiderMessageBubble({ message }: Props) {
     return (
       <div className="flex justify-end">
         <div
-          className="max-w-[80%] px-3 py-2 rounded-xl rounded-tr-sm text-xs"
-          style={{ background: 'rgba(234,179,8,.12)', color: '#facc15', border: '1px solid rgba(234,179,8,.2)' }}
+          className="max-w-[85%] px-4 py-2.5 rounded-xl rounded-tr-sm text-sm leading-relaxed"
+          style={{ background: 'rgba(234,179,8,.12)', color: '#fde047', border: '1px solid rgba(234,179,8,.25)' }}
         >
           {message.text}
         </div>
@@ -45,8 +46,9 @@ export default function InsiderMessageBubble({ message }: Props) {
           ))}
         </div>
       ) : (
-        <div className="max-w-full px-3 py-2.5 rounded-xl rounded-tl-sm text-xs glass-read">
-          <MarkdownBody className="text-xs">{message.text}</MarkdownBody>
+        <div className="max-w-full px-4 py-3 rounded-xl rounded-tl-sm text-sm leading-relaxed glass-read">
+          <MarkdownBody className="text-sm leading-relaxed insider-markdown">{message.text}</MarkdownBody>
+          <InsiderCitationBar evidence={message.evidence} />
           {canFeedback && (
             <div
               className="mt-2 pt-2 flex items-center gap-1 border-t"
@@ -54,7 +56,7 @@ export default function InsiderMessageBubble({ message }: Props) {
             >
               <FeedbackButton active={message.feedback === 'up'} onClick={() => handleFeedback('up')} kind="up" />
               <FeedbackButton active={message.feedback === 'down'} onClick={() => handleFeedback('down')} kind="down" />
-              <span className="ml-auto text-[10px]" style={{ color: 'var(--text-muted)' }}>
+              <span className="ml-auto text-xs" style={{ color: 'var(--text-muted)' }}>
                 {message.feedback === 'up'
                   ? 'Thanks'
                   : message.feedback === 'down'
