@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AnimatePresence } from 'motion/react';
 import { useAuth } from '@/contexts/AuthContext';
 import SplashScreen from '@/components/SplashScreen';
+import SiteFooter from '@/components/layout/SiteFooter';
 import type { PriceData } from '@/types';
 
 const SPLASH_KEY = 'chainpulse-splash-seen';
@@ -350,10 +351,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-white/5 py-6 text-center text-white/25 text-xs">
-        ChainPulse · No financial advice · © Nk 2026
-      </footer>
+      <SiteFooter variant="landing" />
     </div>
     </>
   );

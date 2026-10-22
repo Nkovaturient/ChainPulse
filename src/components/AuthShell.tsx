@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import SiteFooter from '@/components/layout/SiteFooter';
 
 interface Props {
   children: React.ReactNode;
@@ -31,7 +32,7 @@ export default function AuthShell({ children, title, subtitle }: Props) {
       </nav>
 
       {/* Card */}
-      <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-12">
+      <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-8 sm:py-12">
         <div className="w-full max-w-md animate-fade-up">
           {/* Glow border */}
           <div className="relative">
@@ -68,6 +69,8 @@ export default function AuthShell({ children, title, subtitle }: Props) {
           </div>
         </div>
       </main>
+
+      <SiteFooter variant="landing" />
     </div>
   );
 }

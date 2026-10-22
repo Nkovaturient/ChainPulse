@@ -170,8 +170,19 @@ function ExplorerInner() {
         </div>
       </main>
 
-      <footer className="px-6 py-4 text-center text-[11px] relative z-10" style={{ color: 'var(--text-muted)' }}>
-        Data from Etherscan V2 + CoinGecko · Read-only · No wallet connection
+      <footer className="px-6 py-4 text-center text-[11px] relative z-10 space-y-2" style={{ color: 'var(--text-muted)' }}>
+        <p>Data from Etherscan V2 + CoinGecko · Read-only · No wallet connection</p>
+        <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+          <a href="/terms" className="hover:opacity-80">Terms</a>
+          <span aria-hidden>·</span>
+          <a href="/privacy" className="hover:opacity-80">Privacy</a>
+          <span aria-hidden>·</span>
+          <a href="/refund" className="hover:opacity-80">Refunds</a>
+          <span aria-hidden>·</span>
+          <a href="/shipping" className="hover:opacity-80">Shipping</a>
+          <span aria-hidden>·</span>
+          <a href="/contact" className="hover:opacity-80">Contact</a>
+        </p>
       </footer>
     </div>
   );
